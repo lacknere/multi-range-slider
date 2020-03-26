@@ -3,12 +3,16 @@ type MRS_Args = {
     step?: number;
     min?: number;
     max?: number;
+    autoMinMax?: boolean;
     fixToMin?: boolean;
     fixToMax?: boolean;
+    allowContact?: boolean;
     ranges?: number | MRS_Range[];
     connectRanges?: boolean;
-    allowContact?: boolean;
+    limitedSizeMode?: MRS_LimitedSizeMode;
 }
+
+enum MRS_LimitedSizeMode { extendSize, shrinkRanges, shrinkRangesProportionally }
 
 class MRS {
     private _defaultArgs: MRS_Args = {
@@ -16,11 +20,13 @@ class MRS {
         step: 1,
         min: 0,
         max: 100,
+        autoMinMax: false,
         fixToMin: false,
         fixToMax: false,
+        allowContact: true,
         ranges: 1,
         connectRanges: false,
-        allowContact: true,
+        limitedSizeMode: MRS_LimitedSizeMode.extendSize,
     }
     private _defaultRangeProps: any = {
         start: 0,
@@ -29,6 +35,7 @@ class MRS {
         end: 100,
         endFixed: false,
         endConnectedTo: null,
+        minSize: 1,
     }
 
     private _element: HTMLElement;
@@ -37,7 +44,7 @@ class MRS {
 
     constructor(element: HTMLElement, args: any) {
         this._element = element;
-        this._args = this.validateArgs(this.cleanArgs({ ...this.defaultArgs, ...args }));
+        this._args = this.validateArgs({ ...this.defaultArgs, ...args });
         this._slider = new MRS_Slider(this);
     }
 
@@ -89,25 +96,26 @@ class MRS {
 
             if (Array.isArray(ranges)) {
                 // ranges is an array, check and create range objects
-                let validRanges: Object[] = [];
+                let cleanedRanges: Object[] = [];
 
                 ranges.forEach((range: Object, i: number) => {
                     if (validRange(range)) {
-                        validRanges.push(range);
+                        cleanedRanges.push(new MRS_Range(i, { ...this.defaultRangeProps, ...range }));
                     } else {
                         MRS.logW(`Range on position ${i} is invalid and was removed!`);
                     }
                 });
 
-                cleanedArgs.ranges = validRanges.map((validRange: any, i: number) => {
-                    return new MRS_Range(i, validRange);
+                cleanedArgs.ranges = cleanedRanges.map((cleanedRange: any, i: number) => {
+                    return new MRS_Range(i, cleanedRange);
                 });
             } else if (typeof ranges === 'object') {
-                // ranges is a single object, check and create range object
+                // ranges is a single object, check and create array with range object
                 if (validRange(ranges)) {
-                    cleanedArgs.ranges = [new MRS_Range(0, ranges)];
+                    cleanedArgs.ranges = [new MRS_Range(0, { ...this.defaultRangeProps, ...ranges })];
                 } else {
-                    MRS.logW(`Range is invalid and was removed!`);
+                    cleanedArgs.ranges = 1;
+                    MRS.logW(`Range is invalid and was replaced by default range!`);
                 }
             } else {
                 if (typeof ranges !== 'number' || !Number.isInteger(ranges)) {
@@ -119,50 +127,96 @@ class MRS {
             }
         }
 
+        let cleanLimitedSizeMode = () => {
+            switch (args.limitedSizeMode) {
+                case 'extendSize':
+                    cleanedArgs.limitedSizeMode = MRS_LimitedSizeMode.extendSize;
+                    break;
+                case 'shrinkRanges':
+                    cleanedArgs.limitedSizeMode = MRS_LimitedSizeMode.shrinkRanges;
+                    break;
+                case 'shrinkRangesProportionally':
+                    cleanedArgs.limitedSizeMode = MRS_LimitedSizeMode.shrinkRangesProportionally;
+                    break;
+                case MRS_LimitedSizeMode.extendSize:
+                case MRS_LimitedSizeMode.shrinkRanges:
+                case MRS_LimitedSizeMode.shrinkRangesProportionally:
+                    cleanedArgs.limitedSizeMode = args.limitedSizeMode;
+                    break;
+                default:
+                    cleanedArgs.limitedSizeMode = defaultArgs.limitedSizeMode;
+                    break;
+            }
+        }
+
         cleanDefaultType('name', 'string');
         cleanDefaultType('step', 'number');
+
+        // need to validate step here and set it as default range min size
+        // step has to be > 0
+        cleanedArgs.step = cleanedArgs.step > 0 ? cleanedArgs.step : defaultArgs.step;
+        this._defaultRangeProps.minSize = cleanedArgs.step;
+
         cleanDefaultType('min', 'number');
         cleanDefaultType('max', 'number');
+        cleanBoolean('autoMinMax');
         cleanBoolean('fixToMin');
         cleanBoolean('fixToMax');
+        cleanBoolean('allowContact');
         cleanAndCreateRanges();
         cleanBoolean('connectRanges');
-        cleanBoolean('allowContact');
+        cleanLimitedSizeMode();
 
         return cleanedArgs;
     }
 
     private validateArgs(args: MRS_Args): MRS_Args {
+        args = this.cleanArgs(args);
         let defaultArgs: MRS_Args = this.defaultArgs,
             validatedArgs: MRS_Args = {};
 
-        // set bools, nothing to validate here
+        let getMinRequiredSize = (rangesLength: number) => {
+            return (rangesLength * validatedArgs.step) + (validatedArgs.allowContact ? 0 : ((rangesLength - 1) * validatedArgs.step))
+        }
+
+        // step has already been validated
+        validatedArgs.step = args.step;
+
+        // set min and max and change them later if needed
+        validatedArgs.min = args.min;
+        validatedArgs.max = args.max;
+
+        // set bools and limitedSizeMode (autoMinMax = true forces extendSize)
+        validatedArgs.autoMinMax = args.autoMinMax;
         validatedArgs.fixToMin = args.fixToMin;
         validatedArgs.fixToMax = args.fixToMax;
-        validatedArgs.connectRanges = args.connectRanges;
         validatedArgs.allowContact = args.allowContact;
+        validatedArgs.connectRanges = args.connectRanges;
+        validatedArgs.limitedSizeMode = validatedArgs.autoMinMax ? MRS_LimitedSizeMode.extendSize : args.limitedSizeMode;
 
         if (typeof args.ranges === 'number') {
             // ranges is still a number, so we still have to create ranges
 
-            // step has to be > 0
-            validatedArgs.step = args.step > 0 ? args.step : defaultArgs.step;
-
-            // calculate given and required size (step, ranges, allowContact)
+            // calculate min required size
             // minimal size of range = step; if contact is not allowed, add a step between them
-            let givenSize: number = args.max - args.min,
-                requiredSize: number = (args.ranges * validatedArgs.step) + (validatedArgs.allowContact ? 0 : ((args.ranges - 1) * validatedArgs.step));
+            let minRequiredSize: number = getMinRequiredSize(args.ranges),
+                givenSize: number;
 
-            // given size has to be > required size, otherwise adjust max
-            if (requiredSize > givenSize) {
-                args.max = args.min + requiredSize;
+            if (validatedArgs.autoMinMax) {
+                // autoMinMax activated, so we set size to min required size
+                validatedArgs.min = 0;
+                validatedArgs.max = minRequiredSize;
+            } else {
+                // calculate given size
+                givenSize = validatedArgs.max - validatedArgs.min;
+
+                // given size has to be > min required size, otherwise adjust max
+                if (minRequiredSize > givenSize) {
+                    validatedArgs.max = validatedArgs.min + minRequiredSize;
+                }
             }
 
-            // set min and max
-            validatedArgs.min = args.min;
-            validatedArgs.max = args.max;
-
-            // now recalculate the validated given size and create the ranges based on it
+            // now (re)calculate the validated given size and create the ranges based on it
             givenSize = validatedArgs.max - validatedArgs.min;
             let ranges: MRS_Range[] = [],
                 rangeSize: number = (givenSize - (validatedArgs.allowContact ? 0 : ((args.ranges - 1) * validatedArgs.step))) / args.ranges,
@@ -194,8 +248,120 @@ class MRS {
 
             validatedArgs.ranges = ranges;
         } else if (Array.isArray(args.ranges)) {
-            // TODO
+            // ranges is an array of ranges already, validate them
+
+            // make sure start > previous range end, end > start and connect if connectRanges = true
+            let previousRange: MRS_Range,
+                spaceBetweenRanges: number = validatedArgs.allowContact ? 0 : validatedArgs.step;
+
+            for (let i = 0; i < args.ranges.length; i++) {
+                let range: MRS_Range = args.ranges[i],
+                    minStart: number = previousRange ? previousRange.end + spaceBetweenRanges : null,
+                    firstRange: boolean = !previousRange,
+                    lastRange: boolean = i === args.ranges.length - 1;
+
+                range.start = previousRange ? (range.start < minStart || validatedArgs.connectRanges ? minStart : range.start) : range.start;
+                range.startFixed = validatedArgs.fixToMin && firstRange;
+                range.startConnectedTo = validatedArgs.connectRanges && !firstRange ? previousRange.index : null;
+
+                let minEnd: number = range.start + validatedArgs.step;
+
+                range.end = range.end < minEnd ? minEnd : range.end;
+                range.endFixed = validatedArgs.fixToMax && lastRange;
+                range.endConnectedTo = validatedArgs.connectRanges && !lastRange ? i + 1 : null;
+
+                previousRange = range;
+            }
+
+            validatedArgs.ranges = args.ranges;
+
+            let extendSize = () => {
+                validatedArgs.ranges = validatedArgs.ranges as MRS_Range[];
+
+                let firstRange: MRS_Range = validatedArgs.ranges[0],
+                    lastRange: MRS_Range = validatedArgs.ranges[validatedArgs.ranges.length - 1];
+
+                validatedArgs.min = validatedArgs.autoMinMax || firstRange.start < validatedArgs.min ? firstRange.start : validatedArgs.min;
+                validatedArgs.max = validatedArgs.autoMinMax || lastRange.end > validatedArgs.max ? lastRange.end : validatedArgs.max;
+            }
+
+            let shrinkRanges = () => {
+                validatedArgs.ranges = validatedArgs.ranges as MRS_Range[];
+
+                let givenSize: number = validatedArgs.max - validatedArgs.min,
+                    minRequiredSize: number = getMinRequiredSize((validatedArgs.ranges as MRS_Args[]).length);
+
+                // check if it is even possible to shrink it to given size
+                if (minRequiredSize > givenSize) {
+                    return false;
+                }
+
+                let firstRange: boolean = true,
+                    previousRangeEnd: number = validatedArgs.min,
+                    lastRange: boolean = true,
+                    previousRangeStart: number = validatedArgs.max,
+                    spaceBetweenRanges: number = validatedArgs.allowContact ? 0 : validatedArgs.step,
+                    i: number = 0;
+
+                while (i < validatedArgs.ranges.length) {
+                    let range: MRS_Range = validatedArgs.ranges[i],
+                        shrinkBy: number = previousRangeEnd - range.start + (firstRange ? 0 : spaceBetweenRanges);
+
+                    if (shrinkBy <= 0) {
+                        break;
+                    }
+
+                    firstRange = false;
+                    previousRangeEnd = range.shrinkBy(shrinkBy, 'start');
+                    i++;
+                }
+
+                i = validatedArgs.ranges.length - 1;
+
+                while (i >= 0) {
+                    let range: MRS_Range = validatedArgs.ranges[i],
+                        shrinkBy: number = range.end - previousRangeStart + (lastRange ? 0 : spaceBetweenRanges);
+
+                    console.log(range.end)
+                    console.log(previousRangeStart)
+                    if (shrinkBy <= 0) {
+                        break;
+                    }
+
+                    lastRange = false;
+                    previousRangeStart = range.shrinkBy(shrinkBy, 'end');
+                    i--;
+                }
+
+                return true;
+            }
+
+            if (validatedArgs.ranges.length > 0) {
+                switch (validatedArgs.limitedSizeMode) {
+                    case MRS_LimitedSizeMode.extendSize:
+                        extendSize();
+                        break;
+                    case MRS_LimitedSizeMode.shrinkRanges:
+                        // in case shrinking ranges is not possible, extend size instead
+                        if (!shrinkRanges()) {
+                            extendSize();
+                        }
+                        break;
+                    case MRS_LimitedSizeMode.shrinkRangesProportionally:
+                        break;
+                }
+            }
         }
+
+        if (validatedArgs.fixToMin) {
+            validatedArgs.ranges[0].start = validatedArgs.min;
+        }
+
+        if (validatedArgs.fixToMax) {
+            validatedArgs.ranges[(validatedArgs.ranges as MRS_Range[]).length - 1].end = validatedArgs.max;
+        }
+
+        console.log(validatedArgs);
 
         return validatedArgs;
     }

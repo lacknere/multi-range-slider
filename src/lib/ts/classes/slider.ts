@@ -8,16 +8,20 @@ class MRS_Slider {
         this.buildHTML();
     }
 
-    private get mrs(): MRS {
-        return this._mrs;
+    private get args(): MRS_Args {
+        return this._mrs.args;
+    }
+
+    private get element(): HTMLElement {
+        return this._mrs.element;
     }
 
     private get ranges(): MRS_Range[] {
-        return (this.mrs.args.ranges as MRS_Range[]);
+        return (this._mrs.args.ranges as MRS_Range[]);
     }
 
     private buildHTML() {
-        let args: MRS_Args = this.mrs.args;
-        let element: HTMLElement = this.mrs.element;
+        let args: MRS_Args = this.args;
+        let element: HTMLElement = this.element;
     }
 }

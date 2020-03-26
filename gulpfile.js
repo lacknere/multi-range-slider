@@ -3,15 +3,14 @@ var ts = require('gulp-typescript');
 var merge = require('merge2');
 var sass = require('gulp-sass');
 
-var tsProject = ts.createProject('tsconfig.json');
-
 gulp.task('scripts', function () {
-    tsProject = tsProject.src()
+    var tsProject = ts.createProject('tsconfig.json');
+    var tsResult = gulp.src(['src/**/*.ts'])
         .pipe(tsProject());
 
     return merge([
-        tsProject.dts.pipe(gulp.dest('dist/definitions')),
-        tsProject.js.pipe(gulp.dest('dist/js'))
+        tsResult.dts.pipe(gulp.dest('dist/definitions')),
+        tsResult.js.pipe(gulp.dest('dist/js'))
     ]);
 });
 
