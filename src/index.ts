@@ -1,10 +1,10 @@
 interface HTMLElement {
-    multiRangeSlider: Function
-    mrs: MRS
+	multiRangeSlider: (args: MRS_Args) => void;
+	mrs: MRS;
 }
 
-(function () {
-    HTMLElement.prototype.multiRangeSlider = function (args: MRS_Args) {
-        this.mrs = new MRS(this, args);
-    }
-})()
+(() => {
+	HTMLElement.prototype.multiRangeSlider = function (args: MRS_Args) {
+		this.mrs = new MRS(this, args);
+	};
+})();

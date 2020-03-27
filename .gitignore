@@ -1,1 +1,11 @@
-node_modules
+# Editors
+.vscode
+
+# Typescript cache
+.tscache
+
+# Grunt
+/node_modules/
+
+# Build
+/dist/

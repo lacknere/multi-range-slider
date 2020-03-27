@@ -2,39 +2,39 @@
 <html>
 
 <head>
-    <title>Multi-Range-Slider Test Page</title>
-    <script src="../dist/js/multi-range-slider.js"></script>
-    <script>
-        (function (window, document) {
-            window.onload = function () {
-                slider = document.getElementById("slider");
-                slider.multiRangeSlider({
-                    step: 1,
-                    min: 2,
-                    max: 70,
-                    ranges: [
-                        {
-                            start: 0,
-                            end: 10,
-                        }, {
-                            start: 22,
-                            end: 29
-                        }, {
-                            start: 50,
-                            end: 60
-                        }
-                    ],
-                    allowContact: false,
-                    connectRanges: true,
-                    limitedSizeMode: 'shrinkRangesProportionally',
-                });
-            }
-        })(window, document);
-    </script>
+	<title>Multi-Range-Slider Test Page</title>
+	<script src="../dist/release/multi-range-slider.js"></script>
+	<script>
+		(function (window, document) {
+			window.onload = function () {
+				slider = document.getElementById("slider");
+				slider.multiRangeSlider({
+					step: 1,
+					min: 2,
+					max: 70,
+					ranges: [
+						{
+							start: 0,
+							end: 10,
+						}, {
+							start: 22,
+							end: 29
+						}, {
+							start: 50,
+							end: 60
+						}
+					],
+					allowContact: false,
+					connectRanges: true,
+					limitedSizeMode: 'shrinkRangesProportionally',
+				});
+			}
+		})(window, document);
+	</script>
 </head>
 
 <body>
-    <div id="slider"></div>
+	<div id="slider"></div>
 </body>
 
 </html>

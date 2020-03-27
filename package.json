@@ -1,8 +1,8 @@
 {
   "name": "multi-range-slider",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A simple to use multi-range-slider input.",
+  "main": "multi-range-slider.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,9 +16,16 @@
     "url": "https://github.com/lacknere/multi-range-slider/issues"
   },
   "homepage": "https://github.com/lacknere/multi-range-slider#readme",
-  "dependencies": {
-    "gulp-sass": "^4.0.2",
-    "gulp-typescript": "^6.0.0-alpha.1",
-    "merge2": "^1.3.0"
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "^1.1.0",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-uglify": "^4.0.1",
+    "grunt-contrib-watch": "^1.1.0",
+    "grunt-focus": "^1.0.0",
+    "grunt-ts": "^6.0.0-beta.22",
+    "grunt-tslint": "^5.0.2",
+    "tslint": "^6.1.0",
+    "typescript": "^3.8.3"
   }
 }
