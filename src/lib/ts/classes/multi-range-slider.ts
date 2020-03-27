@@ -289,7 +289,7 @@ class MRS {
                 validatedArgs.ranges = validatedArgs.ranges as MRS_Range[];
 
                 let givenSize: number = validatedArgs.max - validatedArgs.min,
-                    minRequiredSize: number = getMinRequiredSize((validatedArgs.ranges as MRS_Args[]).length);
+                    minRequiredSize: number = getMinRequiredSize(validatedArgs.ranges.length);
 
                 // check if it is even possible to shrink it to given size
                 if (minRequiredSize > givenSize) {
@@ -322,8 +322,6 @@ class MRS {
                     let range: MRS_Range = validatedArgs.ranges[i],
                         shrinkBy: number = range.end - previousRangeStart + (lastRange ? 0 : spaceBetweenRanges);
 
-                    console.log(range.end)
-                    console.log(previousRangeStart)
                     if (shrinkBy <= 0) {
                         break;
                     }
@@ -336,7 +334,73 @@ class MRS {
                 return true;
             }
 
-            if (validatedArgs.ranges.length > 0) {
+            let shrinkRangesProportionally = () => {
+                validatedArgs.ranges = validatedArgs.ranges as MRS_Range[];
+
+                let givenSize: number = validatedArgs.max - validatedArgs.min,
+                    minRequiredSize: number = getMinRequiredSize(validatedArgs.ranges.length);
+
+                // check if it is even possible to shrink it to given size
+                if (minRequiredSize > givenSize) {
+                    return false;
+                }
+
+                if (validatedArgs.ranges[0].start < validatedArgs.min) {
+                    let originalStart: number = validatedArgs.ranges[0].start,
+                        originalEnd: number = validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max ? validatedArgs.ranges[validatedArgs.ranges.length - 1].end : validatedArgs.max,
+                        originalSize: number = originalEnd - originalStart,
+                        sizeFactor: number = givenSize / originalSize,
+                        firstRange: boolean = true,
+                        previousRangeOriginalEnd: number = originalStart,
+                        previousRangeNewEnd: number = validatedArgs.min,
+                        i: number = 0;
+
+                    while (i < validatedArgs.ranges.length) {
+                        let range: MRS_Range = validatedArgs.ranges[i],
+                            originalSpaceBetweenRanges: number = range.start - previousRangeOriginalEnd,
+                            newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step,
+                            newStart: number;
+
+                        newSpaceBetweenRanges = !firstRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+                        newStart = previousRangeNewEnd + newSpaceBetweenRanges;
+
+                        firstRange = false;
+                        previousRangeOriginalEnd = range.end;
+                        previousRangeNewEnd = range.shrinkProportionallyBy(sizeFactor, 'start', newStart, validatedArgs.max);
+                        i++;
+                    }
+                } else if (validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max) {
+                    let originalStart: number = validatedArgs.min,
+                        originalEnd: number = validatedArgs.ranges[validatedArgs.ranges.length - 1].end,
+                        originalSize: number = originalEnd - originalStart,
+                        sizeFactor: number = givenSize / originalSize,
+                        lastRange: boolean = true,
+                        previousRangeOriginalStart: number = originalEnd,
+                        previousRangeNewStart: number = validatedArgs.max,
+                        i: number = validatedArgs.ranges.length - 1;
+
+                    while (i >= 0) {
+                        let range: MRS_Range = validatedArgs.ranges[i],
+                            originalSpaceBetweenRanges: number = previousRangeOriginalStart - range.end,
+                            newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step,
+                            newEnd: number;
+
+                        newSpaceBetweenRanges = !lastRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+                        newEnd = previousRangeNewStart - newSpaceBetweenRanges;
+
+                        lastRange = false;
+                        previousRangeOriginalStart = range.start;
+                        previousRangeNewStart = range.shrinkProportionallyBy(sizeFactor, 'end', newEnd, validatedArgs.min);
+                        i--;
+                    }
+                } else {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (validatedArgs.ranges.length > 0 && (validatedArgs.ranges[0].start < validatedArgs.min || validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max)) {
                 switch (validatedArgs.limitedSizeMode) {
                     case MRS_LimitedSizeMode.extendSize:
                         extendSize();
@@ -344,10 +408,16 @@ class MRS {
                     case MRS_LimitedSizeMode.shrinkRanges:
                         // in case shrinking ranges is not possible, extend size instead
                         if (!shrinkRanges()) {
+                            MRS.logW(`LimitedSizeMode.shrinkRanges is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.`);
                             extendSize();
                         }
                         break;
                     case MRS_LimitedSizeMode.shrinkRangesProportionally:
+                        // in case shrinking ranges proportionally is not possible, extend size instead
+                        if (!shrinkRangesProportionally()) {
+                            MRS.logW(`LimitedSizeMode.shrinkRangesProportionally is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.`);
+                            extendSize();
+                        }
                         break;
                 }
             }

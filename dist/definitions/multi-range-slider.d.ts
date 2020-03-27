@@ -61,6 +61,7 @@ declare class MRS_Range {
     set endFixed(endFixed: boolean);
     set endConnectedTo(endConnectedTo: number);
     shrinkBy(value: number, from: 'start' | 'end'): number;
+    shrinkProportionallyBy(factor: number, from: 'start' | 'end', newFrom: number, maxTo: number): number;
 }
 declare class MRS_Slider {
     private _mrs;

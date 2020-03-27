@@ -280,8 +280,6 @@ var MRS = /** @class */ (function () {
                 i = validatedArgs.ranges.length - 1;
                 while (i >= 0) {
                     var range = validatedArgs.ranges[i], shrinkBy = range.end - previousRangeStart + (lastRange ? 0 : spaceBetweenRanges);
-                    console.log(range.end);
-                    console.log(previousRangeStart);
                     if (shrinkBy <= 0) {
                         break;
                     }
@@ -291,7 +289,43 @@ var MRS = /** @class */ (function () {
                 }
                 return true;
             };
-            if (validatedArgs.ranges.length > 0) {
+            var shrinkRangesProportionally = function () {
+                validatedArgs.ranges = validatedArgs.ranges;
+                var givenSize = validatedArgs.max - validatedArgs.min, minRequiredSize = getMinRequiredSize(validatedArgs.ranges.length);
+                // check if it is even possible to shrink it to given size
+                if (minRequiredSize > givenSize) {
+                    return false;
+                }
+                if (validatedArgs.ranges[0].start < validatedArgs.min) {
+                    var originalStart = validatedArgs.ranges[0].start, originalEnd = validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max ? validatedArgs.ranges[validatedArgs.ranges.length - 1].end : validatedArgs.max, originalSize = originalEnd - originalStart, sizeFactor = givenSize / originalSize, firstRange = true, previousRangeOriginalEnd = originalStart, previousRangeNewEnd = validatedArgs.min, i = 0;
+                    while (i < validatedArgs.ranges.length) {
+                        var range = validatedArgs.ranges[i], originalSpaceBetweenRanges = range.start - previousRangeOriginalEnd, newSpaceBetweenRanges = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step, newStart = void 0;
+                        newSpaceBetweenRanges = !firstRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+                        newStart = previousRangeNewEnd + newSpaceBetweenRanges;
+                        firstRange = false;
+                        previousRangeOriginalEnd = range.end;
+                        previousRangeNewEnd = range.shrinkProportionallyBy(sizeFactor, 'start', newStart, validatedArgs.max);
+                        i++;
+                    }
+                }
+                else if (validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max) {
+                    var originalStart = validatedArgs.min, originalEnd = validatedArgs.ranges[validatedArgs.ranges.length - 1].end, originalSize = originalEnd - originalStart, sizeFactor = givenSize / originalSize, lastRange = true, previousRangeOriginalStart = originalEnd, previousRangeNewStart = validatedArgs.max, i = validatedArgs.ranges.length - 1;
+                    while (i >= 0) {
+                        var range = validatedArgs.ranges[i], originalSpaceBetweenRanges = previousRangeOriginalStart - range.end, newSpaceBetweenRanges = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step, newEnd = void 0;
+                        newSpaceBetweenRanges = !lastRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+                        newEnd = previousRangeNewStart - newSpaceBetweenRanges;
+                        lastRange = false;
+                        previousRangeOriginalStart = range.start;
+                        previousRangeNewStart = range.shrinkProportionallyBy(sizeFactor, 'end', newEnd, validatedArgs.min);
+                        i--;
+                    }
+                }
+                else {
+                    return false;
+                }
+                return true;
+            };
+            if (validatedArgs.ranges.length > 0 && (validatedArgs.ranges[0].start < validatedArgs.min || validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max)) {
                 switch (validatedArgs.limitedSizeMode) {
                     case MRS_LimitedSizeMode.extendSize:
                         extendSize();
@@ -299,10 +333,16 @@ var MRS = /** @class */ (function () {
                     case MRS_LimitedSizeMode.shrinkRanges:
                         // in case shrinking ranges is not possible, extend size instead
                         if (!shrinkRanges()) {
+                            MRS.logW("LimitedSizeMode.shrinkRanges is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.");
                             extendSize();
                         }
                         break;
                     case MRS_LimitedSizeMode.shrinkRangesProportionally:
+                        // in case shrinking ranges proportionally is not possible, extend size instead
+                        if (!shrinkRangesProportionally()) {
+                            MRS.logW("LimitedSizeMode.shrinkRangesProportionally is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.");
+                            extendSize();
+                        }
                         break;
                 }
             }
@@ -414,7 +454,7 @@ var MRS_Range = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
-    // shrink range, reposition it and return new range start/end
+    // shrink range by value, reposition it and return new range start/end
     MRS_Range.prototype.shrinkBy = function (value, from) {
         var maxShrink = this.size - this.minSize, shrinkBy = value > maxShrink ? maxShrink : value, leftover = value - shrinkBy;
         switch (from) {
@@ -425,6 +465,21 @@ var MRS_Range = /** @class */ (function () {
             case 'end':
                 this.start -= leftover;
                 this.end -= value;
+                return this.start;
+        }
+    };
+    // shrink range proportionally by factor, reposition it and return new range start/end
+    MRS_Range.prototype.shrinkProportionallyBy = function (factor, from, newFrom, maxTo) {
+        var originalSize = this.size, shrinkSize = Math.round((originalSize * factor) / this.minSize) * this.minSize;
+        shrinkSize = shrinkSize > this.minSize ? shrinkSize : this.minSize;
+        switch (from) {
+            case 'start':
+                this.start = newFrom;
+                this.end = (this.start + shrinkSize) > maxTo ? maxTo : (this.start + shrinkSize);
+                return this.end;
+            case 'end':
+                this.end = newFrom;
+                this.start = (this.end - shrinkSize) < maxTo ? maxTo : (this.end - shrinkSize);
                 return this.start;
         }
     };

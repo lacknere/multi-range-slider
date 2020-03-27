@@ -68,7 +68,7 @@ class MRS_Range {
         this._endConnectedTo = endConnectedTo;
     }
 
-    // shrink range, reposition it and return new range start/end
+    // shrink range by value, reposition it and return new range start/end
     public shrinkBy(value: number, from: 'start' | 'end'): number {
         let maxShrink: number = this.size - this.minSize,
             shrinkBy: number = value > maxShrink ? maxShrink : value,
@@ -82,6 +82,25 @@ class MRS_Range {
             case 'end':
                 this.start -= leftover
                 this.end -= value;
+                return this.start;
+        }
+    }
+
+    // shrink range proportionally by factor, reposition it and return new range start/end
+    public shrinkProportionallyBy(factor: number, from: 'start' | 'end', newFrom: number, maxTo: number): number {
+        let originalSize: number = this.size,
+            shrinkSize: number = Math.round((originalSize * factor) / this.minSize) * this.minSize;
+
+        shrinkSize = shrinkSize > this.minSize ? shrinkSize : this.minSize;
+
+        switch (from) {
+            case 'start':
+                this.start = newFrom;
+                this.end = (this.start + shrinkSize) > maxTo ? maxTo : (this.start + shrinkSize);
+                return this.end;
+            case 'end':
+                this.end = newFrom;
+                this.start = (this.end - shrinkSize) < maxTo ? maxTo : (this.end - shrinkSize);
                 return this.start;
         }
     }

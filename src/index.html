@@ -10,24 +10,23 @@
                 slider = document.getElementById("slider");
                 slider.multiRangeSlider({
                     step: 1,
-                    max: 5,
+                    min: 2,
+                    max: 70,
                     ranges: [
                         {
-                            start: -4,
-                            end: 9,
+                            start: 0,
+                            end: 10,
                         }, {
                             start: 22,
                             end: 29
                         }, {
-                            start: 27,
-                            end: 67
+                            start: 50,
+                            end: 60
                         }
                     ],
-                    fixToMin: true,
-                    fixToMax: true,
                     allowContact: false,
                     connectRanges: true,
-                    limitedSizeMode: 'shrinkRanges',
+                    limitedSizeMode: 'shrinkRangesProportionally',
                 });
             }
         })(window, document);
