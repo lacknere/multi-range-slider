@@ -1,4 +1,4 @@
-type MRS_Args = {
+type MRSArgs = {
 	name?: string;
 	step?: number;
 	min?: number;
@@ -9,13 +9,13 @@ type MRS_Args = {
 	allowContact?: boolean;
 	ranges?: number | MRSRange[];
 	connectRanges?: boolean;
-	limitedSizeMode?: MRS_LimitedSizeMode;
+	limitedSizeMode?: MRSLimitedSizeMode;
 };
 
-enum MRS_LimitedSizeMode { extendSize, shrinkRanges, shrinkRangesProportionally }
+enum MRSLimitedSizeMode { extendSize, shrinkRanges, shrinkRangesProportionally }
 
 class MRS {
-	private _defaultArgs: MRS_Args = {
+	private _defaultArgs: MRSArgs = {
 		name: 'multi-range-slider',
 		step: 1,
 		min: 0,
@@ -26,20 +26,21 @@ class MRS {
 		allowContact: true,
 		ranges: 1,
 		connectRanges: false,
-		limitedSizeMode: MRS_LimitedSizeMode.extendSize,
+		limitedSizeMode: MRSLimitedSizeMode.extendSize,
 	};
 	private _defaultRangeProps: any = {
 		start: 0,
 		startFixed: false,
-		startConnectedTo: null,
+		startConnected: false,
 		end: 100,
 		endFixed: false,
-		endConnectedTo: null,
+		endConnected: false,
 		minSize: 1,
+		allowContact: true,
 	};
 
 	private _element: HTMLElement;
-	private _args: MRS_Args;
+	private _args: MRSArgs;
 	private _slider: MRSSlider;
 
 	constructor(element: HTMLElement, args: any) {
@@ -48,11 +49,11 @@ class MRS {
 		this._slider = new MRSSlider(this);
 	}
 
-	public get defaultArgs(): MRS_Args {
+	private get defaultArgs(): MRSArgs {
 		return { ...this._defaultArgs };
 	}
 
-	public get defaultRangeProps(): any {
+	private get defaultRangeProps(): any {
 		return { ...this._defaultRangeProps };
 	}
 
@@ -60,13 +61,13 @@ class MRS {
 		return this._element;
 	}
 
-	public get args(): MRS_Args {
+	public get args(): MRSArgs {
 		return this._args;
 	}
 
-	private cleanArgs(args: any): MRS_Args {
-		const defaultArgs: MRS_Args = this.defaultArgs,
-			cleanedArgs: MRS_Args = {};
+	private cleanArgs(args: any): MRSArgs {
+		const defaultArgs: MRSArgs = this.defaultArgs,
+			cleanedArgs: MRSArgs = {};
 
 		const cleanDefaultType = (key: string, type: string) => {
 			if (typeof args[key] === type) {
@@ -131,17 +132,17 @@ class MRS {
 		const cleanLimitedSizeMode = () => {
 			switch (args.limitedSizeMode) {
 				case 'extendSize':
-					cleanedArgs.limitedSizeMode = MRS_LimitedSizeMode.extendSize;
+					cleanedArgs.limitedSizeMode = MRSLimitedSizeMode.extendSize;
 					break;
 				case 'shrinkRanges':
-					cleanedArgs.limitedSizeMode = MRS_LimitedSizeMode.shrinkRanges;
+					cleanedArgs.limitedSizeMode = MRSLimitedSizeMode.shrinkRanges;
 					break;
 				case 'shrinkRangesProportionally':
-					cleanedArgs.limitedSizeMode = MRS_LimitedSizeMode.shrinkRangesProportionally;
+					cleanedArgs.limitedSizeMode = MRSLimitedSizeMode.shrinkRangesProportionally;
 					break;
-				case MRS_LimitedSizeMode.extendSize:
-				case MRS_LimitedSizeMode.shrinkRanges:
-				case MRS_LimitedSizeMode.shrinkRangesProportionally:
+				case MRSLimitedSizeMode.extendSize:
+				case MRSLimitedSizeMode.shrinkRanges:
+				case MRSLimitedSizeMode.shrinkRangesProportionally:
 					cleanedArgs.limitedSizeMode = args.limitedSizeMode;
 					break;
 				default:
@@ -164,6 +165,10 @@ class MRS {
 		cleanBoolean('fixToMin');
 		cleanBoolean('fixToMax');
 		cleanBoolean('allowContact');
+
+		// set default range allow contact
+		this._defaultRangeProps.allowContact = cleanedArgs.allowContact;
+
 		cleanAndCreateRanges();
 		cleanBoolean('connectRanges');
 		cleanLimitedSizeMode();
@@ -171,14 +176,19 @@ class MRS {
 		return cleanedArgs;
 	}
 
-	private validateArgs(args: MRS_Args): MRS_Args {
+	private validateArgs(args: MRSArgs): MRSArgs {
 		args = this.cleanArgs(args);
-		const defaultArgs: MRS_Args = this.defaultArgs,
-			validatedArgs: MRS_Args = {};
+		const validatedArgs: MRSArgs = {};
 
 		const getMinRequiredSize = (rangesLength: number) => {
 			return (rangesLength * validatedArgs.step) + (validatedArgs.allowContact ? 0 : ((rangesLength - 1) * validatedArgs.step));
 		};
+
+		const firstRange = (): MRSRange => validatedArgs.ranges[0];
+		const lastRange = (): MRSRange => validatedArgs.ranges[(validatedArgs.ranges as MRSRange[]).length - 1];
+
+		// set name
+		validatedArgs.name = args.name;
 
 		// step has already been validated
 		validatedArgs.step = args.step;
@@ -193,7 +203,7 @@ class MRS {
 		validatedArgs.fixToMax = args.fixToMax;
 		validatedArgs.allowContact = args.allowContact;
 		validatedArgs.connectRanges = args.connectRanges;
-		validatedArgs.limitedSizeMode = validatedArgs.autoMinMax ? MRS_LimitedSizeMode.extendSize : args.limitedSizeMode;
+		validatedArgs.limitedSizeMode = validatedArgs.autoMinMax ? MRSLimitedSizeMode.extendSize : args.limitedSizeMode;
 
 		if (typeof args.ranges === 'number') {
 			// ranges is still a number, so we still have to create ranges
@@ -204,7 +214,7 @@ class MRS {
 			let givenSize: number;
 
 			if (validatedArgs.autoMinMax) {
-				// autoMinMax activated, so we set size to min required size
+				// autoMinMax activated, so we set size to min required size for now
 				validatedArgs.min = 0;
 				validatedArgs.max = minRequiredSize;
 			} else {
@@ -222,7 +232,7 @@ class MRS {
 			const ranges: MRSRange[] = [],
 				rangeSize: number = (givenSize - (validatedArgs.allowContact ? 0 : ((args.ranges - 1) * validatedArgs.step))) / args.ranges,
 				spaceBetweenRanges: number = validatedArgs.allowContact ? 0 : validatedArgs.step;
-			let iPrevious: any;
+			let iPrevious: number;
 
 			for (let i = 0; i < args.ranges; i++) {
 				const rangeProps = this.defaultRangeProps;
@@ -232,7 +242,7 @@ class MRS {
 					rangeProps.startFixed = validatedArgs.fixToMin;
 				} else {
 					rangeProps.start = ranges[iPrevious].end + spaceBetweenRanges;
-					rangeProps.startConnectedTo = validatedArgs.connectRanges ? iPrevious : null;
+					rangeProps.startConnected = validatedArgs.connectRanges ? true : false;
 				}
 
 				if (i === args.ranges - 1) {
@@ -240,7 +250,7 @@ class MRS {
 					rangeProps.endFixed = validatedArgs.fixToMax;
 				} else {
 					rangeProps.end = rangeProps.start + rangeSize;
-					rangeProps.endConnectedTo = validatedArgs.connectRanges ? i + 1 : null;
+					rangeProps.endConnected = validatedArgs.connectRanges ? true : false;
 				}
 
 				ranges.push(new MRSRange(i, rangeProps));
@@ -258,18 +268,18 @@ class MRS {
 			for (let i = 0; i < args.ranges.length; i++) {
 				const range: MRSRange = args.ranges[i],
 					minStart: number = previousRange ? previousRange.end + spaceBetweenRanges : null,
-					firstRange: boolean = !previousRange,
-					lastRange: boolean = i === args.ranges.length - 1;
+					isFirstRange: boolean = !previousRange,
+					isLastRange: boolean = i === args.ranges.length - 1;
 
 				range.start = previousRange ? (range.start < minStart || validatedArgs.connectRanges ? minStart : range.start) : range.start;
-				range.startFixed = validatedArgs.fixToMin && firstRange;
-				range.startConnectedTo = validatedArgs.connectRanges && !firstRange ? previousRange.index : null;
+				range.startFixed = validatedArgs.fixToMin && isFirstRange;
+				range.startConnected = validatedArgs.connectRanges && !isFirstRange ? true : false;
 
 				const minEnd: number = range.start + validatedArgs.step;
 
 				range.end = range.end < minEnd ? minEnd : range.end;
-				range.endFixed = validatedArgs.fixToMax && lastRange;
-				range.endConnectedTo = validatedArgs.connectRanges && !lastRange ? i + 1 : null;
+				range.endFixed = validatedArgs.fixToMax && isLastRange;
+				range.endConnected = validatedArgs.connectRanges && !isLastRange ? true : false;
 
 				previousRange = range;
 			}
@@ -277,13 +287,8 @@ class MRS {
 			validatedArgs.ranges = args.ranges;
 
 			const extendSize = () => {
-				validatedArgs.ranges = validatedArgs.ranges as MRSRange[];
-
-				const firstRange: MRSRange = validatedArgs.ranges[0],
-					lastRange: MRSRange = validatedArgs.ranges[validatedArgs.ranges.length - 1];
-
-				validatedArgs.min = validatedArgs.autoMinMax || firstRange.start < validatedArgs.min ? firstRange.start : validatedArgs.min;
-				validatedArgs.max = validatedArgs.autoMinMax || lastRange.end > validatedArgs.max ? lastRange.end : validatedArgs.max;
+				validatedArgs.min = validatedArgs.autoMinMax || firstRange().start < validatedArgs.min ? firstRange().start : validatedArgs.min;
+				validatedArgs.max = validatedArgs.autoMinMax || lastRange().end > validatedArgs.max ? lastRange().end : validatedArgs.max;
 			};
 
 			const shrinkRanges = () => {
@@ -297,21 +302,21 @@ class MRS {
 					return false;
 				}
 
-				let firstRange: boolean = true,
+				let isFirstRange: boolean = true,
 					previousRangeEnd: number = validatedArgs.min,
-					lastRange: boolean = true,
+					isLastRange: boolean = true,
 					previousRangeStart: number = validatedArgs.max,
 					i: number = 0;
 
 				while (i < validatedArgs.ranges.length) {
 					const range: MRSRange = validatedArgs.ranges[i],
-						shrinkBy: number = previousRangeEnd - range.start + (firstRange ? 0 : spaceBetweenRanges);
+						shrinkBy: number = previousRangeEnd - range.start + (isFirstRange ? 0 : spaceBetweenRanges);
 
 					if (shrinkBy <= 0) {
 						break;
 					}
 
-					firstRange = false;
+					isFirstRange = false;
 					previousRangeEnd = range.shrinkBy(shrinkBy, 'start');
 					i++;
 				}
@@ -320,13 +325,13 @@ class MRS {
 
 				while (i >= 0) {
 					const range: MRSRange = validatedArgs.ranges[i],
-						shrinkBy: number = range.end - previousRangeStart + (lastRange ? 0 : spaceBetweenRanges);
+						shrinkBy: number = range.end - previousRangeStart + (isLastRange ? 0 : spaceBetweenRanges);
 
 					if (shrinkBy <= 0) {
 						break;
 					}
 
-					lastRange = false;
+					isLastRange = false;
 					previousRangeStart = range.shrinkBy(shrinkBy, 'end');
 					i--;
 				}
@@ -345,12 +350,12 @@ class MRS {
 					return false;
 				}
 
-				if (validatedArgs.ranges[0].start < validatedArgs.min) {
-					const originalStart: number = validatedArgs.ranges[0].start,
-						originalEnd: number = validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max ? validatedArgs.ranges[validatedArgs.ranges.length - 1].end : validatedArgs.max,
+				if (firstRange().start < validatedArgs.min) {
+					const originalStart: number = firstRange().start,
+						originalEnd: number = lastRange().end > validatedArgs.max ? lastRange().end : validatedArgs.max,
 						originalSize: number = originalEnd - originalStart,
 						sizeFactor: number = givenSize / originalSize;
-					let firstRange: boolean = true,
+					let isFirstRange: boolean = true,
 						previousRangeOriginalEnd: number = originalStart,
 						previousRangeNewEnd: number = validatedArgs.min,
 						i: number = 0;
@@ -361,20 +366,20 @@ class MRS {
 						let newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step,
 							newStart: number;
 
-						newSpaceBetweenRanges = !firstRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+						newSpaceBetweenRanges = !isFirstRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
 						newStart = previousRangeNewEnd + newSpaceBetweenRanges;
 
-						firstRange = false;
+						isFirstRange = false;
 						previousRangeOriginalEnd = range.end;
 						previousRangeNewEnd = range.shrinkProportionallyBy(sizeFactor, 'start', newStart, validatedArgs.max);
 						i++;
 					}
-				} else if (validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max) {
+				} else if (lastRange().end > validatedArgs.max) {
 					const originalStart: number = validatedArgs.min,
-						originalEnd: number = validatedArgs.ranges[validatedArgs.ranges.length - 1].end,
+						originalEnd: number = lastRange().end,
 						originalSize: number = originalEnd - originalStart,
 						sizeFactor: number = givenSize / originalSize;
-					let lastRange: boolean = true,
+					let isLastRange: boolean = true,
 						previousRangeOriginalStart: number = originalEnd,
 						previousRangeNewStart: number = validatedArgs.max,
 						i: number = validatedArgs.ranges.length - 1;
@@ -385,10 +390,10 @@ class MRS {
 						let newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step,
 							newEnd: number;
 
-						newSpaceBetweenRanges = !lastRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+						newSpaceBetweenRanges = !isLastRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
 						newEnd = previousRangeNewStart - newSpaceBetweenRanges;
 
-						lastRange = false;
+						isLastRange = false;
 						previousRangeOriginalStart = range.start;
 						previousRangeNewStart = range.shrinkProportionallyBy(sizeFactor, 'end', newEnd, validatedArgs.min);
 						i--;
@@ -400,19 +405,19 @@ class MRS {
 				return true;
 			};
 
-			if (validatedArgs.ranges.length > 0 && (validatedArgs.ranges[0].start < validatedArgs.min || validatedArgs.ranges[validatedArgs.ranges.length - 1].end > validatedArgs.max)) {
+			if (validatedArgs.ranges.length > 0 && (firstRange().start < validatedArgs.min || lastRange().end > validatedArgs.max)) {
 				switch (validatedArgs.limitedSizeMode) {
-					case MRS_LimitedSizeMode.extendSize:
+					case MRSLimitedSizeMode.extendSize:
 						extendSize();
 						break;
-					case MRS_LimitedSizeMode.shrinkRanges:
+					case MRSLimitedSizeMode.shrinkRanges:
 						// in case shrinking ranges is not possible, extend size instead
 						if (!shrinkRanges()) {
 							MRS.logW(`LimitedSizeMode.shrinkRanges is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.`);
 							extendSize();
 						}
 						break;
-					case MRS_LimitedSizeMode.shrinkRangesProportionally:
+					case MRSLimitedSizeMode.shrinkRangesProportionally:
 						// in case shrinking ranges proportionally is not possible, extend size instead
 						if (!shrinkRangesProportionally()) {
 							MRS.logW(`LimitedSizeMode.shrinkRangesProportionally is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.`);
@@ -423,12 +428,17 @@ class MRS {
 			}
 		}
 
+		(validatedArgs.ranges as MRSRange[]).forEach((range: MRSRange, i: number) => {
+			range.previousRange = i > 0 ? validatedArgs.ranges[i - 1] : null;
+			range.nextRange = i < (validatedArgs.ranges as MRSRange[]).length - 1 ? validatedArgs.ranges[i + 1] : null;
+		});
+
 		if (validatedArgs.fixToMin) {
-			validatedArgs.ranges[0].start = validatedArgs.min;
+			firstRange().start = validatedArgs.min;
 		}
 
 		if (validatedArgs.fixToMax) {
-			validatedArgs.ranges[(validatedArgs.ranges as MRSRange[]).length - 1].end = validatedArgs.max;
+			lastRange().end = validatedArgs.max;
 		}
 
 		return validatedArgs;
