@@ -1,31 +1,33 @@
 {
-  "name": "multi-range-slider",
-  "version": "1.0.0",
-  "description": "A simple to use multi-range-slider input.",
-  "main": "multi-range-slider.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/lacknere/multi-range-slider.git"
-  },
-  "author": "",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/lacknere/multi-range-slider/issues"
-  },
-  "homepage": "https://github.com/lacknere/multi-range-slider#readme",
-  "dependencies": {},
-  "devDependencies": {
-    "grunt": "^1.1.0",
-    "grunt-contrib-concat": "^1.0.1",
-    "grunt-contrib-uglify": "^4.0.1",
-    "grunt-contrib-watch": "^1.1.0",
-    "grunt-focus": "^1.0.0",
-    "grunt-ts": "^6.0.0-beta.22",
-    "grunt-tslint": "^5.0.2",
-    "tslint": "^6.1.0",
-    "typescript": "^3.8.3"
-  }
+	"name": "multi-range-slider",
+	"version": "0.0.1",
+	"description": "A simple to use multi-range-slider input.",
+	"main": "multi-range-slider.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lacknere/multi-range-slider.git"
+	},
+	"author": "",
+	"license": "GPL-3.0",
+	"bugs": {
+		"url": "https://github.com/lacknere/multi-range-slider/issues"
+	},
+	"homepage": "https://github.com/lacknere/multi-range-slider#readme",
+	"dependencies": {},
+	"devDependencies": {
+		"grunt": "^1.1.0",
+		"grunt-contrib-concat": "^1.0.1",
+		"grunt-contrib-sass": "^1.0.0",
+		"grunt-contrib-uglify": "^4.0.1",
+		"grunt-contrib-watch": "^1.1.0",
+		"grunt-focus": "^1.0.0",
+		"grunt-ts": "^6.0.0-beta.22",
+		"grunt-tslint": "^5.0.2",
+		"sass": "^1.26.3",
+		"tslint": "^6.1.0",
+		"typescript": "^3.8.3"
+	}
 }

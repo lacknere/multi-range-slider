@@ -6,6 +6,7 @@ class MRSRange {
 	private _startFixed: boolean;
 	private _startConnected: boolean;
 	private _startInput: HTMLInputElement;
+	private _rangeElement: HTMLDivElement;
 	private _nextRange: MRSRange;
 	private _end: number;
 	private _endFixed: boolean;
@@ -71,6 +72,14 @@ class MRSRange {
 		startInput.oninput = this.startInputChanged.bind(this);
 
 		this._startInput = startInput;
+	}
+
+	public get rangeElement(): HTMLDivElement {
+		return this._rangeElement;
+	}
+
+	public set rangeElement(rangeElement: HTMLDivElement) {
+		this._rangeElement = rangeElement;
 	}
 
 	public get nextRange(): MRSRange {
@@ -196,6 +205,7 @@ class MRSRange {
 
 		this.start = setNewStart ? startInput : this.start;
 		this.startInput.value = this.start.toString();
+		this.updateRangeElement();
 
 		return setNewStart;
 	}
@@ -219,6 +229,7 @@ class MRSRange {
 
 		this.end = setNewEnd ? endInput : this.end;
 		this.endInput.value = this.end.toString();
+		this.updateRangeElement();
 
 		return setNewEnd;
 	}
@@ -230,5 +241,15 @@ class MRSRange {
 			case 'end':
 				return this.endInputChanged(null, by);
 		}
+	}
+
+	public updateRangeElement() {
+		const sliderWidth: number = this.startInput.clientWidth,
+			sliderSize: number = Number(this.startInput.max) - Number(this.startInput.min),
+			startOffset: number = sliderWidth * (this.start - Number(this.startInput.min)) / sliderSize,
+			rangeWidth: number = sliderWidth * this.size / sliderSize;
+
+		this.rangeElement.style.left = `${startOffset.toString()}px`;
+		this.rangeElement.style.width = `${rangeWidth.toString()}px`;
 	}
 }

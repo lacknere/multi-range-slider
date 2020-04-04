@@ -1,0 +1,84 @@
+// Slider
+$sliderMargin: 2px;
+$sliderPadding: 0px;
+
+// Track
+$trackThickness: 4px;
+$trackBorder: none;
+$trackBorderRadius: 2px;
+$trackColor: lightgrey;
+
+// Range
+$rangeThickness: $trackThickness;
+$rangeColor: lightblue;
+
+// Thumb
+$thumbWidth: 10px;
+$thumbHeight: 20px;
+$thumbBorder: 1px solid lightgrey;
+$thumbBorderRadius: 2px;
+$thumbColor: white;
+$thumbFixedCursor: not-allowed;
+
+[multi-range-slider] {
+	* {
+		margin: 0;
+		padding: 0;
+	}
+
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: relative;
+	height: $thumbHeight;
+	margin: $sliderMargin;
+	padding: $sliderPadding;
+
+	[track] {
+		position: absolute;
+		z-index: -2;
+		width: 100%;
+		height: $trackThickness;
+		border: $trackBorder;
+		border-radius: $trackBorderRadius;
+		background-color: $trackColor;
+	}
+
+	[range] {
+		position: absolute;
+		z-index: -1;
+		height: $rangeThickness;
+		background-color: $rangeColor;
+	}
+
+	input[type=range] {
+		position: absolute;
+		width: 100%;
+		background: none;
+		pointer-events: none;
+
+		&:focus {
+			outline: none;
+		}
+
+		&::-webkit-slider-runnable-track, &::-webkit-slider-thumb, & {
+			-webkit-appearance: none;
+		}
+
+		&::-webkit-slider-thumb {
+			width: $thumbWidth;
+			height: $thumbHeight;
+			border: $thumbBorder;
+			border-radius: $thumbBorderRadius;
+			background-color: $thumbColor;
+			pointer-events: auto;
+			cursor: pointer;
+		}
+
+		&[fixed] {
+			&::-webkit-slider-thumb {
+				cursor: $thumbFixedCursor;
+			}
+		}
+	}
+}

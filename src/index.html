@@ -7,13 +7,12 @@
 	<script>
 		(function (window, document) {
 			window.onload = function () {
-				slider = document.getElementById("slider");
+				slider = document.getElementById('slider');
 				slider.multiRangeSlider({
 					step: 0.5,
 					min: 2,
 					max: 70,
 					fixToMin: true,
-					fixToMax: true,
 					ranges: [
 						{
 							start: 0,
@@ -30,13 +29,27 @@
 					connectRanges: true,
 					limitedSizeMode: 'shrinkRangesProportionally',
 				});
+
+				form = document.getElementById('form');
+
+				form.onsubmit = function (e) {
+					e.preventDefault();
+
+					var xhr = new XMLHttpRequest;
+					xhr.open('POST', '/', true);
+					xhr.send(new FormData(form));
+				}
 			}
 		})(window, document);
 	</script>
+	<link href="../dist/release/multi-range-slider.css" type="text/css" rel="stylesheet">
 </head>
 
 <body>
-	<div id="slider"></div>
+	<form id="form">
+		<div id="slider"></div>
+		<button>Submit</button>
+	</form>
 </body>
 
 </html>
