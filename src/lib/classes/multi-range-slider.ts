@@ -10,9 +10,12 @@ type MRSArgs = {
 	ranges?: number | MRSRange[];
 	connectRanges?: boolean;
 	limitedSizeMode?: MRSLimitedSizeMode;
+	sizeTooltipMode?: MRSTooltipMode;
+	startEndTooltipMode?: MRSTooltipMode;
 };
 
 enum MRSLimitedSizeMode { extendSize, shrinkRanges, shrinkRangesProportionally }
+enum MRSTooltipMode { never, always, onHover }
 
 class MRS {
 	private _defaultArgs: MRSArgs = {
@@ -27,6 +30,8 @@ class MRS {
 		ranges: 1,
 		connectRanges: false,
 		limitedSizeMode: MRSLimitedSizeMode.extendSize,
+		sizeTooltipMode: MRSTooltipMode.onHover,
+		startEndTooltipMode: MRSTooltipMode.onHover,
 	};
 	private _defaultRangeProps: any = {
 		start: 0,
@@ -151,6 +156,48 @@ class MRS {
 			}
 		};
 
+		const cleanSizeTooltipMode = () => {
+			switch (args.sizeTooltipMode) {
+				case 'never':
+					cleanedArgs.sizeTooltipMode = MRSTooltipMode.never;
+					break;
+				case 'always':
+					cleanedArgs.sizeTooltipMode = MRSTooltipMode.always;
+					break;
+				case 'onHover':
+					cleanedArgs.sizeTooltipMode = MRSTooltipMode.onHover;
+					break;
+				case MRSTooltipMode.never:
+				case MRSTooltipMode.always:
+				case MRSTooltipMode.onHover:
+					cleanedArgs.sizeTooltipMode = args.sizeTooltipMode;
+					break;
+				default:
+					cleanedArgs.sizeTooltipMode = defaultArgs.sizeTooltipMode;
+					break;
+			}
+		};
+
+		const cleanStartEndTooltipMode = () => {
+			switch (args.startEndTooltipMode) {
+				case 'never':
+					cleanedArgs.startEndTooltipMode = MRSTooltipMode.never;
+					break;
+				case 'always':
+				case MRSTooltipMode.always:
+				case 'onHover':
+					cleanedArgs.startEndTooltipMode = MRSTooltipMode.onHover;
+					break;
+				case MRSTooltipMode.never:
+				case MRSTooltipMode.onHover:
+					cleanedArgs.startEndTooltipMode = args.startEndTooltipMode;
+					break;
+				default:
+					cleanedArgs.startEndTooltipMode = defaultArgs.startEndTooltipMode;
+					break;
+			}
+		};
+
 		cleanDefaultType('name', 'string');
 		cleanDefaultType('step', 'number');
 
@@ -172,6 +219,8 @@ class MRS {
 		cleanAndCreateRanges();
 		cleanBoolean('connectRanges');
 		cleanLimitedSizeMode();
+		cleanSizeTooltipMode();
+		cleanStartEndTooltipMode();
 
 		return cleanedArgs;
 	}
@@ -197,13 +246,19 @@ class MRS {
 		validatedArgs.min = args.min;
 		validatedArgs.max = args.max;
 
-		// set bools and limitedSizeMode (autoMinMax = true forces extendSize)
+		// set bools
 		validatedArgs.autoMinMax = args.autoMinMax;
 		validatedArgs.fixToMin = args.fixToMin;
 		validatedArgs.fixToMax = args.fixToMax;
 		validatedArgs.allowContact = args.allowContact;
 		validatedArgs.connectRanges = args.connectRanges;
+
+		// set limitedSizeMode (autoMinMax = true forces extendSize)
 		validatedArgs.limitedSizeMode = validatedArgs.autoMinMax ? MRSLimitedSizeMode.extendSize : args.limitedSizeMode;
+
+		// set sizeTooltipMode and startEndTooltipMode
+		validatedArgs.sizeTooltipMode = args.sizeTooltipMode;
+		validatedArgs.startEndTooltipMode = args.startEndTooltipMode;
 
 		if (typeof args.ranges === 'number') {
 			// ranges is still a number, so we still have to create ranges

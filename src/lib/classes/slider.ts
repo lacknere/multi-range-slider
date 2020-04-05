@@ -24,10 +24,30 @@ class MRSSlider {
 	private buildHTML() {
 		this.element.setAttribute('multi-range-slider', '');
 
-		const trackElement: HTMLDivElement = document.createElement('div');
+		switch (this.args.sizeTooltipMode) {
+			case MRSTooltipMode.never:
+				break;
+			case MRSTooltipMode.always:
+			case MRSTooltipMode.onHover:
+				this.element.setAttribute('size-tooltip', '');
+				break;
+		}
 
+		switch (this.args.startEndTooltipMode) {
+			case MRSTooltipMode.never:
+				break;
+			case MRSTooltipMode.onHover:
+				this.element.setAttribute('start-end-tooltip', '');
+				break;
+		}
+
+		const trackContainer: HTMLDivElement = document.createElement('div'),
+			trackElement: HTMLDivElement = document.createElement('div');
+
+		trackContainer.setAttribute('track-container', '');
 		trackElement.setAttribute('track', '');
-		this.element.appendChild(trackElement);
+		trackContainer.appendChild(trackElement);
+		this.element.appendChild(trackContainer);
 
 		const setSliderAttributes = (input: HTMLInputElement): HTMLInputElement => {
 			const { step, min, max } = this.args;
@@ -67,8 +87,31 @@ class MRSSlider {
 			}
 		};
 
+		const setRangeContainerAttributes = (element: HTMLDivElement) => {
+			element.setAttribute('range-container', '');
+			switch (this.args.sizeTooltipMode) {
+				case MRSTooltipMode.never:
+					break;
+				case MRSTooltipMode.always:
+					element.setAttribute('size-tooltip-always', '');
+					break;
+				case MRSTooltipMode.onHover:
+					element.setAttribute('size-tooltip-on-hover', '');
+					break;
+			}
+
+			return element;
+		};
+
 		const setRangeAttributes = (element: HTMLDivElement, range: MRSRange): HTMLDivElement => {
 			element.setAttribute('range', '');
+			switch (this.args.startEndTooltipMode) {
+				case MRSTooltipMode.never:
+					break;
+				case MRSTooltipMode.onHover:
+					element.setAttribute('start-end-tooltip-on-hover', '');
+					break;
+			}
 
 			return element;
 		};
@@ -76,6 +119,7 @@ class MRSSlider {
 		this.ranges.forEach((range: MRSRange) => {
 			let rangeStartInput: HTMLInputElement = document.createElement('input'),
 				rangeEndInput: HTMLInputElement = document.createElement('input'),
+				rangeContainer: HTMLDivElement = document.createElement('div'),
 				rangeElement: HTMLDivElement = document.createElement('div');
 
 			rangeStartInput = setSliderAttributes(rangeStartInput);
@@ -84,15 +128,19 @@ class MRSSlider {
 			rangeStartInput = setInputAttributes(rangeStartInput, range, 'start');
 			rangeEndInput = setInputAttributes(rangeEndInput, range, 'end');
 
+			rangeContainer = setRangeContainerAttributes(rangeContainer);
 			rangeElement = setRangeAttributes(rangeElement, range);
+			rangeContainer.appendChild(rangeElement);
 
 			range.startInput = rangeStartInput;
 			range.endInput = rangeEndInput;
+
+			range.rangeContainer = rangeContainer;
 			range.rangeElement = rangeElement;
 
 			this.element.appendChild(range.startInput);
-			this.element.appendChild(range.rangeElement);
 			this.element.appendChild(range.endInput);
+			this.element.appendChild(rangeContainer);
 
 			range.updateRangeElement();
 		});
