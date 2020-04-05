@@ -1,161 +1,45 @@
-// Track
-$trackThickness: 4px;
-$trackBorder: none;
-$trackBorderRadius: 2px;
-$trackColor: lightgrey;
+@import 'variables';
+@import 'mixins';
+@import 'functions';
 
-// Range
-$rangeThickness: $trackThickness;
-$rangeColor: lightblue;
-
-// Thumb
-$thumbWidth: 10px;
-$thumbHeight: 20px;
-$thumbBorder: 1px solid lightgrey;
-$thumbBorderRadius: 2px;
-$thumbColor: white;
-$thumbFixedCursor: not-allowed;
-
-// Tooltip
-$tooltipWidth: 25px;
-$tooltipHeight:	20px;
-$tooltipOffset: 5px;
-$tooltipBorder: none;
-$tooltipBorderRadius: 2px;
-$tooltipTextColor: white;
-$tooltipFontSize: 12px;
-$tooltipFontWeight: bold;
-$tooltipTransition: 0.3s;
-
-// Slider
-$sliderMargin: 5px $tooltipWidth;
-
-@mixin tooltip {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	position: absolute;
-	width: $tooltipWidth;
-	height: $tooltipHeight;
-	border: $tooltipBorder;
-	border-radius: $tooltipBorderRadius;
-	background-color: inherit;
-	color: $tooltipTextColor;
-	font-size: $tooltipFontSize;
-	font-weight: $tooltipFontWeight;
-}
-
+// slider
 [multi-range-slider] {
 	* {
 		margin: 0;
 		padding: 0;
 	}
 
-	display: flex;
-	justify-content: center;
-	align-items: center;
+	@include flexCenter;
 	position: relative;
-	height: $thumbHeight;
-	margin: $sliderMargin;
+	height: thumb(height);
+	@include objectProperties($slider);
 
+	// change slider margin based on tooltip usage
 	&[size-tooltip] {
-		align-items: flex-end;
-		height: $thumbHeight + $tooltipHeight + $tooltipOffset;
+		margin-top: slider(margin) + tooltip(height) + tooltip(offset);
 	}
 
 	&[start-end-tooltip] {
-		align-items: flex-start;
-		height: $thumbHeight + $tooltipHeight + $tooltipOffset;
+		margin-left: slider(margin) + tooltip(width);
+		margin-right: slider(margin) + tooltip(width);
+		margin-bottom: slider(margin) + tooltip(height) + tooltip(offset);
 	}
 
-	&[size-tooltip][start-end-tooltip] {
-		align-items: center;
-		height: $thumbHeight + 2 * $tooltipHeight + 2 * $tooltipOffset;
-	}
-
+	// track
 	[track-container] {
-		display: flex;
-		justify-content: center;
-		align-items: center;
+		@include flexCenter;
 		position: absolute;
 		z-index: -2;
 		width: 100%;
-		height: $thumbHeight;
+		height: thumb(height);
 
 		[track] {
 			width: 100%;
-			height: $trackThickness;
-			border: $trackBorder;
-			border-radius: $trackBorderRadius;
-			background-color: $trackColor;
+			@include objectProperties($track);
 		}
 	}
 
-	[range-container] {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		position: absolute;
-		z-index: 0;
-		height: $thumbHeight;
-
-		&[size-tooltip-always]::before {
-			content: attr(size);
-			@include tooltip();
-			left: calc(50% - $tooltipWidth / 2);
-			top: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
-			background-color: $rangeColor;
-		}
-
-		&[size-tooltip-on-hover]::before {
-			content: attr(size);
-			@include tooltip();
-			left: calc(50% - $tooltipWidth / 2);
-			top: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
-			background-color: $rangeColor;
-			transition: opacity $tooltipTransition;
-			opacity: 0;
-		}
-
-		[range] {
-			width: 100%;
-			height: $rangeThickness;
-			background-color: $rangeColor;
-
-			&[start-end-tooltip-on-hover] {
-				&::before {
-					content: attr(start);
-					@include tooltip();
-					left: - $tooltipWidth;
-					bottom: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
-					transition: opacity $tooltipTransition;
-					opacity: 0;
-				}
-
-				&::after {
-					content: attr(end);
-					@include tooltip();
-					right: - $tooltipWidth;
-					bottom: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
-					transition: opacity $tooltipTransition;
-					opacity: 0;
-				}
-			}
-		}
-
-		&:hover {
-			&[size-tooltip-on-hover]::before {
-				opacity: 1;
-			}
-
-			[range][start-end-tooltip-on-hover] {
-				&::before, &::after {
-					opacity: 1;
-				}
-			}
-		}
-	}
-
+	// input
 	input[type=range] {
 		position: absolute;
 		z-index: 1;
@@ -168,36 +52,107 @@ $sliderMargin: 5px $tooltipWidth;
 		}
 
 		&:hover {
-			+ input[type=range] + [range-container] [range][start-end-tooltip-on-hover], + [range-container] [range][start-end-tooltip-on-hover] {
-				&::before, &::after {
-					opacity: 1;
-				}
-			}
-
-			+ input[type=range] + [range-container][size-tooltip-on-hover], + [range-container][size-tooltip-on-hover] {
-				&::before {
-					opacity: 1;
+			+ input[type=range] + [range-container], + [range-container] {
+				[range][start-end-tooltip-on-hover], [range-size][size-tooltip-on-hover] {
+					&::before, &::after {
+						opacity: 1;
+					}
 				}
 			}
 		}
 
+		// ms browsers
+		// NOT WORKING! ::-ms-thumb doesn't support pointer-events
+		&::-ms-track {
+			background: none;
+			color: transparent;
+			border: none;
+		}
+
+		&::-ms-thumb {
+			@include objectProperties($thumb);
+			pointer-events: auto;
+		}
+
+		&[fixed]::-ms-thumb {
+			cursor: thumb(fixed-cursor);
+		}
+
+		&::-ms-fill-upper, &::-ms-fill-lower {
+			background: none;
+		}
+
+		// moz browser
+		&::-moz-range-track {
+			-moz-appearance: none;
+		}
+
+		&::-moz-range-thumb {
+			@include objectProperties($thumb);
+			pointer-events: auto;
+		}
+
+		&[fixed]::-moz-range-thumb {
+			cursor: thumb(fixed-cursor);
+		}
+
+		&::-moz-focus-outer {
+			border: none;
+		}
+
+		// webkit browsers
 		&::-webkit-slider-runnable-track, &::-webkit-slider-thumb, & {
 			-webkit-appearance: none;
 		}
 
 		&::-webkit-slider-thumb {
-			width: $thumbWidth;
-			height: $thumbHeight;
-			border: $thumbBorder;
-			border-radius: $thumbBorderRadius;
-			background-color: $thumbColor;
+			@include objectProperties($thumb);
 			pointer-events: auto;
-			cursor: pointer;
 		}
 
-		&[fixed] {
-			&::-webkit-slider-thumb {
-				cursor: $thumbFixedCursor;
+		&[fixed]::-webkit-slider-thumb {
+			cursor: thumb(fixed-cursor);
+		}
+	}
+
+	// range
+	[range-container] {
+		@include flexCenter;
+		position: absolute;
+		z-index: 0;
+		height: thumb(height);
+
+		[range-size] {
+			@include range;
+
+			&[size-tooltip-always]::before {
+				@include tooltip(size, 1, center, start);
+			}
+
+			&[size-tooltip-on-hover]::before {
+				@include tooltip(size, 0, center, start);
+			}
+		}
+
+		[range] {
+			@include range;
+
+			&[start-end-tooltip-on-hover] {
+				&::before {
+					@include tooltip(start, 0, start, end)
+				}
+
+				&::after {
+					@include tooltip(end, 0, end, end)
+				}
+			}
+		}
+
+		&:hover {
+			[range][start-end-tooltip-on-hover], [range-size][size-tooltip-on-hover] {
+				&::before, &::after {
+					opacity: 1;
+				}
 			}
 		}
 	}

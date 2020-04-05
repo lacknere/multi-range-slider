@@ -1,0 +1,210 @@
+// Track
+$trackThickness: 4px;
+$trackBorder: none;
+$trackBorderRadius: 2px;
+$trackColor: lightgrey;
+
+// Range
+$rangeThickness: $trackThickness;
+$rangeColor: lightblue;
+
+// Thumb
+$thumbWidth: 10px;
+$thumbHeight: 20px;
+$thumbBorder: 1px solid lightgrey;
+$thumbBorderRadius: 2px;
+$thumbColor: white;
+$thumbFixedCursor: not-allowed;
+
+// Tooltip
+$tooltipWidth: 25px;
+$tooltipHeight:	20px;
+$tooltipOffset: 5px;
+$tooltipBorder: none;
+$tooltipBorderRadius: 2px;
+$tooltipTextColor: white;
+$tooltipFontSize: 12px;
+$tooltipFontWeight: bold;
+$tooltipTransition: 0.3s;
+
+// Slider
+$sliderMargin: 5px;
+
+@mixin tooltip {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: absolute;
+	width: $tooltipWidth;
+	height: $tooltipHeight;
+	border: $tooltipBorder;
+	border-radius: $tooltipBorderRadius;
+	background-color: inherit;
+	color: $tooltipTextColor;
+	font-size: $tooltipFontSize;
+	font-weight: $tooltipFontWeight;
+}
+
+[multi-range-slider] {
+	* {
+		margin: 0;
+		padding: 0;
+	}
+
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: relative;
+	height: $thumbHeight;
+	margin: $sliderMargin;
+
+	&[size-tooltip] {
+		align-items: flex-end;
+		height: $thumbHeight + $tooltipHeight + $tooltipOffset;
+	}
+
+	&[start-end-tooltip] {
+		align-items: flex-start;
+		height: $thumbHeight + $tooltipHeight + $tooltipOffset;
+	}
+
+	&[size-tooltip][start-end-tooltip] {
+		align-items: center;
+		height: $thumbHeight + 2 * $tooltipHeight + 2 * $tooltipOffset;
+	}
+
+	[track-container] {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		position: absolute;
+		z-index: -2;
+		width: 100%;
+		height: $thumbHeight;
+
+		[track] {
+			width: 100%;
+			height: $trackThickness;
+			border: $trackBorder;
+			border-radius: $trackBorderRadius;
+			background-color: $trackColor;
+		}
+	}
+
+	[range-container] {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		position: absolute;
+		z-index: 0;
+		height: $thumbHeight;
+
+		[range-size] {
+			position: absolute;
+			width: 100%;
+			height: $rangeThickness;
+			background-color: $rangeColor;
+
+			&[size-tooltip-always]::before {
+				content: attr(size);
+				@include tooltip();
+				left: calc(50% - (#{$tooltipWidth} / 2));
+				top: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
+			}
+
+			&[size-tooltip-on-hover]::before {
+				content: attr(size);
+				@include tooltip();
+				left: calc(50% - (#{$tooltipWidth} / 2));
+				top: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
+				transition: opacity $tooltipTransition;
+				opacity: 0;
+			}
+		}
+
+		[range] {
+			position: absolute;
+			width: 100%;
+			height: $rangeThickness;
+			background-color: $rangeColor;
+
+			&[start-end-tooltip-on-hover] {
+				&::before {
+					content: attr(start);
+					@include tooltip();
+					left: - $tooltipWidth;
+					bottom: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
+					transition: opacity $tooltipTransition;
+					opacity: 0;
+				}
+
+				&::after {
+					content: attr(end);
+					@include tooltip();
+					right: - $tooltipWidth;
+					bottom: - ($rangeThickness / 2 + $tooltipHeight + $tooltipOffset);
+					transition: opacity $tooltipTransition;
+					opacity: 0;
+				}
+			}
+		}
+
+		&:hover {
+			&[size-tooltip-on-hover]::before {
+				opacity: 1;
+			}
+
+			[range][start-end-tooltip-on-hover] {
+				&::before, &::after {
+					opacity: 1;
+				}
+			}
+		}
+	}
+
+	input[type=range] {
+		position: absolute;
+		z-index: 1;
+		width: 100%;
+		background: none;
+		pointer-events: none;
+
+		&:focus {
+			outline: none;
+		}
+
+		&:hover {
+			+ input[type=range] + [range-container] [range][start-end-tooltip-on-hover], + [range-container] [range][start-end-tooltip-on-hover] {
+				&::before, &::after {
+					opacity: 1;
+				}
+			}
+
+			+ input[type=range] + [range-container] [range-size][size-tooltip-on-hover], + [range-container] [range-size][size-tooltip-on-hover] {
+				&::before {
+					opacity: 1;
+				}
+			}
+		}
+
+		&::-webkit-slider-runnable-track, &::-webkit-slider-thumb, & {
+			-webkit-appearance: none;
+		}
+
+		&::-webkit-slider-thumb {
+			width: $thumbWidth;
+			height: $thumbHeight;
+			border: $thumbBorder;
+			border-radius: $thumbBorderRadius;
+			background-color: $thumbColor;
+			pointer-events: auto;
+			cursor: pointer;
+		}
+
+		&[fixed] {
+			&::-webkit-slider-thumb {
+				cursor: $thumbFixedCursor;
+			}
+		}
+	}
+}

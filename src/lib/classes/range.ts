@@ -7,7 +7,8 @@ class MRSRange {
 	private _startConnected: boolean;
 	private _startInput: HTMLInputElement;
 	private _rangeContainer: HTMLDivElement;
-	private _rangeElement: HTMLDivElement;
+	private _rangeSizeElement: HTMLDivElement;
+	private _rangeStartEndElement: HTMLDivElement;
 	private _nextRange: MRSRange;
 	private _end: number;
 	private _endFixed: boolean;
@@ -83,12 +84,20 @@ class MRSRange {
 		this._rangeContainer = rangeContainer;
 	}
 
-	public get rangeElement(): HTMLDivElement {
-		return this._rangeElement;
+	public get rangeSizeElement(): HTMLDivElement {
+		return this._rangeSizeElement;
 	}
 
-	public set rangeElement(rangeElement: HTMLDivElement) {
-		this._rangeElement = rangeElement;
+	public set rangeSizeElement(rangeSizeElement: HTMLDivElement) {
+		this._rangeSizeElement = rangeSizeElement;
+	}
+
+	public get rangeStartEndElement(): HTMLDivElement {
+		return this._rangeStartEndElement;
+	}
+
+	public set rangeStartEndElement(rangeStartEndElement: HTMLDivElement) {
+		this._rangeStartEndElement = rangeStartEndElement;
 	}
 
 	public get nextRange(): MRSRange {
@@ -260,8 +269,8 @@ class MRSRange {
 
 		this.rangeContainer.style.left = `${startOffset.toString()}px`;
 		this.rangeContainer.style.width = `${rangeWidth.toString()}px`;
-		this.rangeContainer.setAttribute('size', this.size.toString());
-		this.rangeElement.setAttribute('start', this.start.toString());
-		this.rangeElement.setAttribute('end', this.end.toString());
+		this.rangeSizeElement.setAttribute('size', this.size.toString());
+		this.rangeStartEndElement.setAttribute('start', this.start.toString());
+		this.rangeStartEndElement.setAttribute('end', this.end.toString());
 	}
 }

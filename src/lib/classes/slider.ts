@@ -89,6 +89,12 @@ class MRSSlider {
 
 		const setRangeContainerAttributes = (element: HTMLDivElement) => {
 			element.setAttribute('range-container', '');
+
+			return element;
+		};
+
+		const setRangeSizeElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
+			element.setAttribute('range-size', '');
 			switch (this.args.sizeTooltipMode) {
 				case MRSTooltipMode.never:
 					break;
@@ -102,8 +108,7 @@ class MRSSlider {
 
 			return element;
 		};
-
-		const setRangeAttributes = (element: HTMLDivElement, range: MRSRange): HTMLDivElement => {
+		const setRangeStartEndElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
 			element.setAttribute('range', '');
 			switch (this.args.startEndTooltipMode) {
 				case MRSTooltipMode.never:
@@ -120,7 +125,8 @@ class MRSSlider {
 			let rangeStartInput: HTMLInputElement = document.createElement('input'),
 				rangeEndInput: HTMLInputElement = document.createElement('input'),
 				rangeContainer: HTMLDivElement = document.createElement('div'),
-				rangeElement: HTMLDivElement = document.createElement('div');
+				rangeSizeElement: HTMLDivElement = document.createElement('div'),
+				rangeStartEndElement: HTMLDivElement = document.createElement('div');
 
 			rangeStartInput = setSliderAttributes(rangeStartInput);
 			rangeEndInput = setSliderAttributes(rangeEndInput);
@@ -129,14 +135,18 @@ class MRSSlider {
 			rangeEndInput = setInputAttributes(rangeEndInput, range, 'end');
 
 			rangeContainer = setRangeContainerAttributes(rangeContainer);
-			rangeElement = setRangeAttributes(rangeElement, range);
-			rangeContainer.appendChild(rangeElement);
+			rangeSizeElement = setRangeSizeElementAttributes(rangeSizeElement);
+			rangeStartEndElement = setRangeStartEndElementAttributes(rangeStartEndElement);
+
+			rangeContainer.appendChild(rangeSizeElement);
+			rangeContainer.appendChild(rangeStartEndElement);
 
 			range.startInput = rangeStartInput;
 			range.endInput = rangeEndInput;
 
 			range.rangeContainer = rangeContainer;
-			range.rangeElement = rangeElement;
+			range.rangeSizeElement = rangeSizeElement;
+			range.rangeStartEndElement = rangeStartEndElement;
 
 			this.element.appendChild(range.startInput);
 			this.element.appendChild(range.endInput);

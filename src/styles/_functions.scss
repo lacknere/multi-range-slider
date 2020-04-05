@@ -1,0 +1,20 @@
+// getters
+@function slider($key) {
+	@return map-get($slider, $key);
+}
+
+@function track($key) {
+	@return map-get($track, $key);
+}
+
+@function range($key) {
+	@return map-get($range, $key);
+}
+
+@function thumb($key) {
+	@return map-get($thumb, $key);
+}
+
+@function tooltip($key) {
+	@return map-get($tooltip, $key);
+}

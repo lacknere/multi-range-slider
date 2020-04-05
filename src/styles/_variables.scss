@@ -1,0 +1,43 @@
+// Slider
+$slider: (
+	margin: 5px
+);
+
+// Track
+$track: (
+	thickness: 4px,
+	border: none,
+	border-radius: 2px,
+	color: lightgrey
+);
+
+// Range
+$range: (
+	thickness: map-get($track, thickness),
+	color: lightblue
+);
+
+// Thumb
+$thumb: (
+	width: 10px,
+	height: 20px,
+	border: 1px solid lightgrey,
+	border-radius: 2px,
+	color: white,
+	cursor: pointer,
+	fixed-cursor: not-allowed
+);
+
+// Tooltip
+$tooltip: (
+	width: 25px,
+	height: 20px,
+	offset: 5px,
+	border: none,
+	border-radius: 2px,
+	color: inherit,
+	text-color: white,
+	font-size: 12px,
+	font-weight: bold,
+	transition: 0.3s
+);

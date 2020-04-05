@@ -1,0 +1,53 @@
+@mixin flexCenter {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+$propertyLinkings: (
+	thickness: height,
+	color: background-color,
+	text-color: color,
+	fixed-cursor: false,
+	offset: false,
+);
+
+@mixin objectProperties($object) {
+	@each $key in map-keys($object) {
+		@if map-has-key($propertyLinkings, $key) {
+			@if map-get($propertyLinkings, $key) != false {
+				#{map-get($propertyLinkings, $key)}: map-get($object, $key);
+			}
+		} @else {
+			#{$key}: map-get($object, $key);
+		}
+	}
+}
+
+@mixin range {
+	position: absolute;
+	width: 100%;
+	@include objectProperties($range);
+}
+
+@mixin tooltip($content, $opacity, $horizontalAlignment, $verticalAlignment) {
+	content: attr($content);
+	@include flexCenter;
+	position: absolute;
+	@include objectProperties($tooltip);
+	opacity: $opacity;
+
+	@if $horizontalAlignment == start {
+		left: - tooltip(width);
+	} @else if $horizontalAlignment == center {
+		left: calc(50% - (#{tooltip(width)} / 2));
+	} @else if $horizontalAlignment == end {
+		right: - tooltip(width);
+	}
+
+	@if $verticalAlignment == start {
+		top: - (thumb(height) / 2 + tooltip(height) + tooltip(offset) - range(thickness) / 2);
+	} @else if $verticalAlignment == end {
+		bottom: - (thumb(height) / 2 + tooltip(height) + tooltip(offset) - range(thickness) / 2);
+	}
+}
