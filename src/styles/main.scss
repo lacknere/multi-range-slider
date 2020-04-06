@@ -14,7 +14,15 @@
 	height: thumb(height);
 	@include objectProperties($slider);
 
-	// change slider margin based on tooltip usage
+	// change slider margin based on labels/tooltip usage
+	&[min-label] {
+		margin-left: slider(margin) + sliderLabel(width) + sliderLabel(offset);
+	}
+
+	&[max-label] {
+		margin-right: slider(margin) + sliderLabel(width) + sliderLabel(offset);
+	}
+
 	&[size-tooltip] {
 		margin-top: slider(margin) + tooltip(height) + tooltip(offset);
 	}
@@ -23,6 +31,23 @@
 		margin-left: slider(margin) + tooltip(width);
 		margin-right: slider(margin) + tooltip(width);
 		margin-bottom: slider(margin) + tooltip(height) + tooltip(offset);
+
+		&[min-label] {
+			margin-left: slider(margin) + max(tooltip(width), sliderLabel(width) + sliderLabel(offset));
+		}
+
+		&[max-label] {
+			margin-right: slider(margin) + max(tooltip(width), sliderLabel(width) + sliderLabel(offset));
+		}
+	}
+
+	// slider labels
+	&[min-label]::before {
+		@include sliderLabel(min-label);
+	}
+
+	&[max-label]::after {
+		@include sliderLabel(max-label);
 	}
 
 	// track

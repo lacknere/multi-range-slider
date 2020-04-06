@@ -3,6 +3,10 @@
 	@return map-get($slider, $key);
 }
 
+@function sliderLabel($key) {
+	@return map-get(slider(label), $key);
+}
+
 @function track($key) {
 	@return map-get($track, $key);
 }

@@ -1,4 +1,5 @@
 type MRSArgs = {
+	labels?: MRSLabels;
 	name?: string;
 	step?: number;
 	min?: number;
@@ -14,11 +15,17 @@ type MRSArgs = {
 	startEndTooltipMode?: MRSTooltipMode;
 };
 
+type MRSLabels = {
+	min?: string;
+	max?: string;
+};
+
 enum MRSLimitedSizeMode { extendSize, shrinkRanges, shrinkRangesProportionally }
 enum MRSTooltipMode { never, always, onHover }
 
 class MRS {
 	private _defaultArgs: MRSArgs = {
+		labels: { min: '#min#', max: '#max#' },
 		name: 'multi-range-slider',
 		step: 1,
 		min: 0,
@@ -33,7 +40,7 @@ class MRS {
 		sizeTooltipMode: MRSTooltipMode.onHover,
 		startEndTooltipMode: MRSTooltipMode.onHover,
 	};
-	private _defaultRangeProps: any = {
+	private _defaultRangeArgs: any = {
 		start: 0,
 		startFixed: false,
 		startConnected: false,
@@ -58,8 +65,8 @@ class MRS {
 		return { ...this._defaultArgs };
 	}
 
-	private get defaultRangeProps(): any {
-		return { ...this._defaultRangeProps };
+	private get defaultRangeArgs(): any {
+		return { ...this._defaultRangeArgs };
 	}
 
 	public get element(): HTMLElement {
@@ -74,12 +81,49 @@ class MRS {
 		const defaultArgs: MRSArgs = this.defaultArgs,
 			cleanedArgs: MRSArgs = {};
 
+		const getNestedArg = (rootArgs: any, key: string): any => {
+			const splitKeys: string[] = key.split('.');
+
+			if (splitKeys.length === 1) {
+				return rootArgs[key];
+			}
+
+			let arg: any = rootArgs[splitKeys[0]];
+
+			splitKeys.shift();
+			splitKeys.forEach((splitKey: string) => {
+				arg = arg[splitKey];
+			});
+
+			return arg;
+		};
+
+		const setNestedArg = (rootArgs: any, key: string, value: any) => {
+			let schema: any = rootArgs;  // a moving reference to internal args within rootArgs
+			const splitKeys: string[] = key.split('.'),
+				keysLength: number = splitKeys.length;
+
+			for (let i = 0; i < keysLength - 1; i++) {
+				const argKey = splitKeys[i];
+
+				if (!schema[argKey]) {
+					schema[argKey] = {};
+				}
+				schema = schema[argKey];
+			}
+
+			schema[splitKeys[keysLength - 1]] = value;
+		};
+
 		const cleanDefaultType = (key: string, type: string) => {
-			if (typeof args[key] === type) {
-				cleanedArgs[key] = args[key];
+			const arg: any = getNestedArg(args, key),
+				defaultArg: any = getNestedArg(defaultArgs, key);
+
+			if (typeof arg === type) {
+				setNestedArg(cleanedArgs, key, arg);
 			} else {
-				cleanedArgs[key] = defaultArgs[key];
-				MRS.logW(`Property "${key}" is not of type ${type}! Defaul value "${defaultArgs[key]}" is used instead.`);
+				setNestedArg(cleanedArgs, key, defaultArg);
+				MRS.logW(`Property "${key}" is not of type ${type}! Default value "${defaultArg}" is used instead.`);
 			}
 		};
 
@@ -90,7 +134,7 @@ class MRS {
 				cleanedArgs[key] = false;
 			} else {
 				cleanedArgs[key] = defaultArgs[key];
-				MRS.logW(`Property "${key}" is not of type boolean! Defaul value "${defaultArgs[key]}" is used instead.`);
+				MRS.logW(`Property "${key}" is not of type boolean! Default value "${defaultArgs[key]}" is used instead.`);
 			}
 		};
 
@@ -107,7 +151,7 @@ class MRS {
 
 				ranges.forEach((range: any, i: number) => {
 					if (validRange(range)) {
-						cleanedRanges.push(new MRSRange(i, { ...this.defaultRangeProps, ...range }));
+						cleanedRanges.push(new MRSRange(i, { ...this.defaultRangeArgs, ...range }));
 					} else {
 						MRS.logW(`Range on position ${i} is invalid and was removed!`);
 					}
@@ -119,7 +163,7 @@ class MRS {
 			} else if (typeof ranges === 'object') {
 				// ranges is a single object, check and create array with range object
 				if (validRange(ranges)) {
-					cleanedArgs.ranges = [new MRSRange(0, { ...this.defaultRangeProps, ...ranges })];
+					cleanedArgs.ranges = [new MRSRange(0, { ...this.defaultRangeArgs, ...ranges })];
 				} else {
 					cleanedArgs.ranges = 1;
 					MRS.logW(`Range is invalid and was replaced by default range!`);
@@ -198,13 +242,17 @@ class MRS {
 			}
 		};
 
+		// need to merge default labels into args before cleaning because it is a nested object
+		args.labels = { ...defaultArgs.labels, ...args.labels };
+		cleanDefaultType('labels.min', 'string');
+		cleanDefaultType('labels.max', 'string');
 		cleanDefaultType('name', 'string');
 		cleanDefaultType('step', 'number');
 
 		// need to validate step here and set it as default range min size
 		// step has to be > 0
 		cleanedArgs.step = cleanedArgs.step > 0 ? cleanedArgs.step : defaultArgs.step;
-		this._defaultRangeProps.minSize = cleanedArgs.step;
+		this._defaultRangeArgs.minSize = cleanedArgs.step;
 
 		cleanDefaultType('min', 'number');
 		cleanDefaultType('max', 'number');
@@ -214,7 +262,7 @@ class MRS {
 		cleanBoolean('allowContact');
 
 		// set default range allow contact
-		this._defaultRangeProps.allowContact = cleanedArgs.allowContact;
+		this._defaultRangeArgs.allowContact = cleanedArgs.allowContact;
 
 		cleanAndCreateRanges();
 		cleanBoolean('connectRanges');
@@ -290,25 +338,25 @@ class MRS {
 			let iPrevious: number;
 
 			for (let i = 0; i < args.ranges; i++) {
-				const rangeProps = this.defaultRangeProps;
+				const rangeArgs = this.defaultRangeArgs;
 
 				if (i === 0) {
-					rangeProps.start = validatedArgs.min;
-					rangeProps.startFixed = validatedArgs.fixToMin;
+					rangeArgs.start = validatedArgs.min;
+					rangeArgs.startFixed = validatedArgs.fixToMin;
 				} else {
-					rangeProps.start = ranges[iPrevious].end + spaceBetweenRanges;
-					rangeProps.startConnected = validatedArgs.connectRanges ? true : false;
+					rangeArgs.start = ranges[iPrevious].end + spaceBetweenRanges;
+					rangeArgs.startConnected = validatedArgs.connectRanges ? true : false;
 				}
 
 				if (i === args.ranges - 1) {
-					rangeProps.end = validatedArgs.max;
-					rangeProps.endFixed = validatedArgs.fixToMax;
+					rangeArgs.end = validatedArgs.max;
+					rangeArgs.endFixed = validatedArgs.fixToMax;
 				} else {
-					rangeProps.end = rangeProps.start + rangeSize;
-					rangeProps.endConnected = validatedArgs.connectRanges ? true : false;
+					rangeArgs.end = rangeArgs.start + rangeSize;
+					rangeArgs.endConnected = validatedArgs.connectRanges ? true : false;
 				}
 
-				ranges.push(new MRSRange(i, rangeProps));
+				ranges.push(new MRSRange(i, rangeArgs));
 				iPrevious = i;
 			}
 
@@ -495,6 +543,27 @@ class MRS {
 		if (validatedArgs.fixToMax) {
 			lastRange().end = validatedArgs.max;
 		}
+
+		// set labels with filled placeholders
+		const placeholderData = {
+			min: validatedArgs.min,
+			max: validatedArgs.max
+		};
+
+		const fillPlaceholders = (label: string): string => {
+			let filledLabel: string = label;
+
+			Object.keys(placeholderData).forEach((key: string) => {
+				filledLabel = filledLabel.split(`#${key}#`).join(placeholderData[key]);
+			});
+
+			return filledLabel;
+		};
+
+		validatedArgs.labels = {
+			min: fillPlaceholders(args.labels.min),
+			max: fillPlaceholders(args.labels.max)
+		};
 
 		return validatedArgs;
 	}

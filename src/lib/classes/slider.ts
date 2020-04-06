@@ -24,6 +24,14 @@ class MRSSlider {
 	private buildHTML() {
 		this.element.setAttribute('multi-range-slider', '');
 
+		if (this.args.labels.min !== '') {
+			this.element.setAttribute('min-label', this.args.labels.min);
+		}
+
+		if (this.args.labels.max !== '') {
+			this.element.setAttribute('max-label', this.args.labels.max);
+		}
+
 		switch (this.args.sizeTooltipMode) {
 			case MRSTooltipMode.never:
 				break;

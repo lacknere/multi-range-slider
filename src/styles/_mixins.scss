@@ -8,6 +8,7 @@ $propertyLinkings: (
 	thickness: height,
 	color: background-color,
 	text-color: color,
+	label: false,
 	fixed-cursor: false,
 	offset: false,
 );
@@ -21,6 +22,19 @@ $propertyLinkings: (
 		} @else {
 			#{$key}: map-get($object, $key);
 		}
+	}
+}
+
+@mixin sliderLabel($content) {
+	content: attr($content);
+	@include flexCenter;
+	position: absolute;
+	@include objectProperties(slider(label));
+
+	@if $content == min-label {
+		left: - (sliderLabel(width) + sliderLabel(offset));
+	} @else if $content == max-label {
+		right: - (sliderLabel(width) + sliderLabel(offset));
 	}
 }
 
