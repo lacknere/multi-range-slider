@@ -9,6 +9,7 @@ type MRSRangeData = {
 	minSize: number;
 	size: number;
 	allowContact: boolean;
+	color: string;
 };
 
 type MRSRangeElements = {
@@ -24,6 +25,7 @@ type MRSRangeElements = {
 	minSize?: HTMLInputElement;
 	size?: HTMLInputElement;
 	allowContact?: HTMLInputElement;
+	color?: HTMLInputElement;
 };
 
 class MRSRange {
@@ -57,7 +59,8 @@ class MRSRange {
 			'endConnected',
 			'minSize',
 			'size',
-			'allowContact'
+			'allowContact',
+			'color'
 		];
 	}
 
@@ -119,6 +122,10 @@ class MRSRange {
 
 	public get allowContact(): boolean {
 		return this._data.allowContact;
+	}
+
+	public get color(): string {
+		return this._data.color;
 	}
 
 	// slider getters/setter
@@ -256,6 +263,14 @@ class MRSRange {
 
 	public set allowContactInput(allowContactInput: HTMLInputElement) {
 		this._elements.allowContact = allowContactInput;
+	}
+
+	public get colorInput(): HTMLInputElement {
+		return this._elements.color;
+	}
+
+	public set colorInput(colorInput: HTMLInputElement) {
+		this._elements.color = colorInput;
 	}
 
 	// additional getters/setters
@@ -426,6 +441,9 @@ class MRSRange {
 					element.setAttribute('size-tooltip-on-hover', '');
 					break;
 			}
+			if (this.color) {
+				element.style.backgroundColor = this.color;
+			}
 
 			return element;
 		};
@@ -438,6 +456,9 @@ class MRSRange {
 				case MRSTooltipMode.onHover:
 					element.setAttribute('start-end-tooltip-on-hover', '');
 					break;
+			}
+			if (this.color) {
+				element.style.backgroundColor = this.color;
 			}
 
 			return element;
@@ -463,7 +484,7 @@ class MRSRange {
 
 		const hiddenDataKeys: string[] = this.hiddenDataKeys;
 		this.args.postData.forEach((dataKey: string) => {
-			if (hiddenDataKeys.includes(dataKey)) {
+			if (hiddenDataKeys.includes(dataKey) && this[dataKey] !== undefined) {
 				this[`${dataKey}Input`] = createHiddenPostDataInput(dataKey);
 				this.containerElement.appendChild(this[`${dataKey}Input`]);
 			}
