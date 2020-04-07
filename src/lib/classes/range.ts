@@ -1,4 +1,5 @@
 type MRSRangeData = {
+	key: any;
 	start: number;
 	startFixed: boolean;
 	startConnected: boolean;
@@ -46,6 +47,22 @@ class MRSRange {
 	// data getters/setters
 	public get data(): MRSRangeData {
 		return this._data;
+	}
+
+	public get hiddenDataKeys(): string[] {
+		return [
+			'startFixed',
+			'startConnected',
+			'endFixed',
+			'endConnected',
+			'minSize',
+			'size',
+			'allowContact'
+		];
+	}
+
+	public get key(): any {
+		return this._data.key ? this._data.key : this.index;
 	}
 
 	public get start(): number {
@@ -364,7 +381,7 @@ class MRSRange {
 			switch (from) {
 				case 'start':
 					if (postData.includes('start')) {
-						input.name = `${this.args.name}[${this.index}][start]`;
+						input.name = `${this.args.name}[${this.key}][start]`;
 					}
 					input.setAttribute('start', '');
 					if (this.startFixed) {
@@ -377,7 +394,7 @@ class MRSRange {
 					return input;
 				case 'end':
 					if (postData.includes('end')) {
-						input.name = `${this.args.name}[${this.index}][end]`;
+						input.name = `${this.args.name}[${this.key}][end]`;
 					}
 					input.setAttribute('end', '');
 					if (this.endFixed) {
@@ -430,7 +447,7 @@ class MRSRange {
 			const input: HTMLInputElement = document.createElement('input');
 
 			input.type = 'hidden';
-			input.name = `${this.args.name}[${this.index}][${dataKey}]`;
+			input.name = `${this.args.name}[${this.key}][${dataKey}]`;
 
 			return input;
 		};
@@ -444,9 +461,9 @@ class MRSRange {
 		this.containerElement.appendChild(this.sizeHolderElement);
 		this.containerElement.appendChild(this.startEndHolderElement);
 
-		const availablePostDataKeys: string[] = Object.getOwnPropertyNames(this.data);
+		const hiddenDataKeys: string[] = this.hiddenDataKeys;
 		this.args.postData.forEach((dataKey: string) => {
-			if (dataKey !== 'start' && dataKey !== 'end' && availablePostDataKeys.includes(dataKey)) {
+			if (hiddenDataKeys.includes(dataKey)) {
 				this[`${dataKey}Input`] = createHiddenPostDataInput(dataKey);
 				this.containerElement.appendChild(this[`${dataKey}Input`]);
 			}

@@ -15,12 +15,14 @@
 					fixToMin: true,
 					ranges: [
 						{
+							key: 'range1',
 							start: 0,
 							end: 10,
 						}, {
 							start: 22,
 							end: 29
 						}, {
+							key: 'range3',
 							start: 50,
 							end: 60
 						}
@@ -31,6 +33,7 @@
 					sizeTooltipMode: 'always',
 					startEndTooltipMode: 'onHover',
 					postData: [
+						'key',
 						'start',
 						'startFixed',
 						'startConnected',
