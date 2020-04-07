@@ -9,7 +9,8 @@ $track: (
 // Range
 $range: (
 	thickness: map-get($track, thickness),
-	color: lightblue
+	color: lightblue,
+	text-color: white
 );
 
 // Thumb
@@ -25,13 +26,13 @@ $thumb: (
 
 // Tooltip
 $tooltip: (
-	width: 25px,
+	width: 30px,
 	height: 20px,
 	offset: 5px,
 	border: none,
 	border-radius: 2px,
 	color: inherit,
-	text-color: white,
+	text-color: inherit,
 	text-align: center,
 	font-size: 12px,
 	font-weight: bold,
@@ -42,7 +43,7 @@ $tooltip: (
 $slider: (
 	margin: 5px,
 	label: (
-		width: 25px,
+		width: 30px,
 		height: map-get($thumb, height),
 		offset: 5px,
 		text-color: darkgrey,

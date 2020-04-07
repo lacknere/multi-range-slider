@@ -10,6 +10,7 @@ type MRSRangeData = {
 	size: number;
 	allowContact: boolean;
 	color: string;
+	textColor: string;
 };
 
 type MRSRangeElements = {
@@ -26,6 +27,7 @@ type MRSRangeElements = {
 	size?: HTMLInputElement;
 	allowContact?: HTMLInputElement;
 	color?: HTMLInputElement;
+	textColor?: HTMLInputElement;
 };
 
 class MRSRange {
@@ -60,7 +62,8 @@ class MRSRange {
 			'minSize',
 			'size',
 			'allowContact',
-			'color'
+			'color',
+			'textColor'
 		];
 	}
 
@@ -126,6 +129,10 @@ class MRSRange {
 
 	public get color(): string {
 		return this._data.color;
+	}
+
+	public get textColor(): string {
+		return this._data.textColor;
 	}
 
 	// slider getters/setter
@@ -271,6 +278,14 @@ class MRSRange {
 
 	public set colorInput(colorInput: HTMLInputElement) {
 		this._elements.color = colorInput;
+	}
+
+	public get textColorInput(): HTMLInputElement {
+		return this._elements.textColor;
+	}
+
+	public set textColorInput(textColorInput: HTMLInputElement) {
+		this._elements.textColor = textColorInput;
 	}
 
 	// additional getters/setters
@@ -444,6 +459,9 @@ class MRSRange {
 			if (this.color) {
 				element.style.backgroundColor = this.color;
 			}
+			if (this.textColor) {
+				element.style.color = this.textColor;
+			}
 
 			return element;
 		};
@@ -459,6 +477,9 @@ class MRSRange {
 			}
 			if (this.color) {
 				element.style.backgroundColor = this.color;
+			}
+			if (this.textColor) {
+				element.style.color = this.textColor;
 			}
 
 			return element;
