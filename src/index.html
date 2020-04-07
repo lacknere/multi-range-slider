@@ -27,9 +27,20 @@
 					],
 					allowContact: true,
 					connectRanges: false,
-					limitedSizeMode: 'shrinkRangesProportionally',
+					limitedSizeMode: 'extendSize',
 					sizeTooltipMode: 'always',
 					startEndTooltipMode: 'onHover',
+					postData: [
+						'start',
+						'startFixed',
+						'startConnected',
+						'end',
+						'endFixed',
+						'endConnected',
+						'minSize',
+						'size',
+						'allowContact'
+					]
 				});
 
 				form = document.getElementById('form');

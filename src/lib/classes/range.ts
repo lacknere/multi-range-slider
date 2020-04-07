@@ -1,103 +1,129 @@
-class MRSRange {
-	private _args: MRSArgs;
-	private _index: number;
-	private _previousRange: MRSRange;
-	private _start: number;
-	private _startFixed: boolean;
-	private _startConnected: boolean;
-	private _startInput: HTMLInputElement;
-	private _rangeContainer: HTMLDivElement;
-	private _rangeSizeElement: HTMLDivElement;
-	private _rangeStartEndElement: HTMLDivElement;
-	private _nextRange: MRSRange;
-	private _end: number;
-	private _endFixed: boolean;
-	private _endConnected: boolean;
-	private _endInput: HTMLInputElement;
-	private _minSize: number;
-	private _allowContact: boolean;
+type MRSRangeData = {
+	start: number;
+	startFixed: boolean;
+	startConnected: boolean;
+	end: number;
+	endFixed: boolean;
+	endConnected: boolean;
+	minSize: number;
+	size: number;
+	allowContact: boolean;
+};
 
-	constructor(index: number, range: any) {
+type MRSRangeElements = {
+	container?: HTMLDivElement;
+	sizeHolder?: HTMLDivElement;
+	startEndHolder?: HTMLDivElement;
+	start?: HTMLInputElement;
+	startFixed?: HTMLInputElement;
+	startConnected?: HTMLInputElement;
+	end?: HTMLInputElement;
+	endFixed?: HTMLInputElement;
+	endConnected?: HTMLInputElement;
+	minSize?: HTMLInputElement;
+	size?: HTMLInputElement;
+	allowContact?: HTMLInputElement;
+};
+
+class MRSRange {
+	private _index: number;
+	private _data: MRSRangeData;
+	private _slider: MRSSlider;
+	private _elements: MRSRangeElements = {};
+	private _previousRange: MRSRange;
+	private _nextRange: MRSRange;
+
+	constructor(index: number, data: any) {
 		this._index = index;
-		this._start = range.start;
-		this._startFixed = range.startFixed;
-		this._startConnected = range.startConnected;
-		this._end = range.end;
-		this._endFixed = range.endFixed;
-		this._endConnected = range.endConnected;
-		this._minSize = range.minSize;
-		this._allowContact = range.allowContact;
+		this._data = data;
+		this._data.size = this.size;
 	}
 
 	public get index(): number {
 		return this._index;
 	}
 
+	// data getters/setters
+	public get data(): MRSRangeData {
+		return this._data;
+	}
+
+	public get start(): number {
+		return this._data.start;
+	}
+
+	public set start(start: number) {
+		this._data.start = start;
+	}
+
+	public get startFixed(): boolean {
+		return this._data.startFixed;
+	}
+
+	public set startFixed(startFixed: boolean) {
+		this._data.startFixed = startFixed;
+	}
+
+	public get startConnected(): boolean {
+		return this._data.startConnected;
+	}
+
+	public set startConnected(startConnected: boolean) {
+		this._data.startConnected = startConnected;
+	}
+
+	public get end(): number {
+		return this._data.end;
+	}
+
+	public set end(end: number) {
+		this._data.end = end;
+	}
+
+	public get endFixed(): boolean {
+		return this._data.endFixed;
+	}
+
+	public set endFixed(endFixed: boolean) {
+		this._data.endFixed = endFixed;
+	}
+
+	public get endConnected(): boolean {
+		return this._data.endConnected;
+	}
+
+	public set endConnected(endConnected: boolean) {
+		this._data.endConnected = endConnected;
+	}
+
+	public get minSize(): number {
+		return this._data.minSize;
+	}
+
+	public get allowContact(): boolean {
+		return this._data.allowContact;
+	}
+
+	// slider getters/setter
+	public set slider(slider: MRSSlider) {
+		this._slider = slider;
+	}
+
+	public get element(): HTMLElement {
+		return this._slider.element;
+	}
+
+	public get args(): MRSArgs {
+		return this._slider.args;
+	}
+
+	// neighbor range getters/setters
 	public get previousRange(): MRSRange {
 		return this._previousRange;
 	}
 
 	public set previousRange(previousRange: MRSRange) {
 		this._previousRange = previousRange;
-	}
-
-	public get start(): number {
-		return this._start;
-	}
-
-	public set start(start: number) {
-		this._start = start;
-	}
-
-	public get startFixed(): boolean {
-		return this._startFixed;
-	}
-
-	public set startFixed(startFixed: boolean) {
-		this._startFixed = startFixed;
-	}
-
-	public get startConnected(): boolean {
-		return this._startConnected;
-	}
-
-	public set startConnected(startConnected: boolean) {
-		this._startConnected = startConnected;
-	}
-
-	public get startInput(): HTMLInputElement {
-		return this._startInput;
-	}
-
-	public set startInput(startInput: HTMLInputElement) {
-		startInput.setAttribute('value', this.start.toString());
-		startInput.oninput = this.startInputChanged.bind(this);
-
-		this._startInput = startInput;
-	}
-
-	public get rangeContainer(): HTMLDivElement {
-		return this._rangeContainer;
-	}
-
-	public set rangeContainer(rangeContainer: HTMLDivElement) {
-		this._rangeContainer = rangeContainer;
-	}
-
-	public get rangeSizeElement(): HTMLDivElement {
-		return this._rangeSizeElement;
-	}
-
-	public set rangeSizeElement(rangeSizeElement: HTMLDivElement) {
-		this._rangeSizeElement = rangeSizeElement;
-	}
-
-	public get rangeStartEndElement(): HTMLDivElement {
-		return this._rangeStartEndElement;
-	}
-
-	public set rangeStartEndElement(rangeStartEndElement: HTMLDivElement) {
-		this._rangeStartEndElement = rangeStartEndElement;
 	}
 
 	public get nextRange(): MRSRange {
@@ -108,49 +134,114 @@ class MRSRange {
 		this._nextRange = nextRange;
 	}
 
-	public get end(): number {
-		return this._end;
+	// HTML element getters/setters
+	public get elements(): MRSRangeElements {
+		return this._elements;
 	}
 
-	public set end(end: number) {
-		this._end = end;
+	public get containerElement(): HTMLDivElement {
+		return this._elements.container;
 	}
 
-	public get endFixed(): boolean {
-		return this._endFixed;
+	public set containerElement(containerElement: HTMLDivElement) {
+		this._elements.container = containerElement;
 	}
 
-	public set endFixed(endFixed: boolean) {
-		this._endFixed = endFixed;
+	public get sizeHolderElement(): HTMLDivElement {
+		return this._elements.sizeHolder;
 	}
 
-	public get endConnected(): boolean {
-		return this._endConnected;
+	public set sizeHolderElement(sizeHolderElement: HTMLDivElement) {
+		this._elements.sizeHolder = sizeHolderElement;
 	}
 
-	public set endConnected(endConnected: boolean) {
-		this._endConnected = endConnected;
+	public get startEndHolderElement(): HTMLDivElement {
+		return this._elements.startEndHolder;
+	}
+
+	public set startEndHolderElement(startEndHolderElement: HTMLDivElement) {
+		this._elements.startEndHolder = startEndHolderElement;
+	}
+
+	public get startInput(): HTMLInputElement {
+		return this._elements.start;
+	}
+
+	public set startInput(startInput: HTMLInputElement) {
+		startInput.setAttribute('value', this.start.toString());
+		startInput.oninput = this.startInputChanged.bind(this);
+
+		this._elements.start = startInput;
+	}
+
+	public get startFixedInput(): HTMLInputElement {
+		return this._elements.startFixed;
+	}
+
+	public set startFixedInput(startFixedInput: HTMLInputElement) {
+		this._elements.startFixed = startFixedInput;
+	}
+
+	public get startConnectedInput(): HTMLInputElement {
+		return this._elements.startConnected;
+	}
+
+	public set startConnectedInput(startConnectedInput: HTMLInputElement) {
+		this._elements.startConnected = startConnectedInput;
 	}
 
 	public get endInput(): HTMLInputElement {
-		return this._endInput;
+		return this._elements.end;
 	}
 
 	public set endInput(endInput: HTMLInputElement) {
 		endInput.setAttribute('value', this.end.toString());
 		endInput.oninput = this.endInputChanged.bind(this);
 
-		this._endInput = endInput;
+		this._elements.end = endInput;
 	}
 
-	public get minSize(): number {
-		return this._minSize;
+	public get endFixedInput(): HTMLInputElement {
+		return this._elements.endFixed;
 	}
 
-	public get allowContact(): boolean {
-		return this._allowContact;
+	public set endFixedInput(endFixedInput: HTMLInputElement) {
+		this._elements.endFixed = endFixedInput;
 	}
 
+	public get endConnectedInput(): HTMLInputElement {
+		return this._elements.endConnected;
+	}
+
+	public set endConnectedInput(endConnectedInput: HTMLInputElement) {
+		this._elements.endConnected = endConnectedInput;
+	}
+
+	public get minSizeInput(): HTMLInputElement {
+		return this._elements.minSize;
+	}
+
+	public set minSizeInput(minSizeInput: HTMLInputElement) {
+		this._elements.minSize = minSizeInput;
+	}
+
+	public get sizeInput(): HTMLInputElement {
+		return this._elements.size;
+	}
+
+	public set sizeInput(sizeInput: HTMLInputElement) {
+		this._elements.size = sizeInput;
+	}
+
+	public get allowContactInput(): HTMLInputElement {
+		return this._elements.allowContact;
+	}
+
+	public set allowContactInput(allowContactInput: HTMLInputElement) {
+		this._elements.allowContact = allowContactInput;
+	}
+
+	// additional getters/setters
 	public get size(): number {
 		return this.end - this.start;
 	}
@@ -223,7 +314,7 @@ class MRSRange {
 
 		this.start = setNewStart ? startInput : this.start;
 		this.startInput.value = this.start.toString();
-		this.updateRangeElement();
+		this.updateRangeElements();
 
 		return setNewStart;
 	}
@@ -247,7 +338,7 @@ class MRSRange {
 
 		this.end = setNewEnd ? endInput : this.end;
 		this.endInput.value = this.end.toString();
-		this.updateRangeElement();
+		this.updateRangeElements();
 
 		return setNewEnd;
 	}
@@ -261,16 +352,131 @@ class MRSRange {
 		}
 	}
 
-	public updateRangeElement() {
+	public buildHTML() {
+		const setStartEndInputAttributes = (input: HTMLInputElement, from: 'start' | 'end'): HTMLInputElement => {
+			const { step, min, max, postData } = this.args;
+
+			input.type = 'range';
+			input.step = step.toString();
+			input.min = min.toString();
+			input.max = max.toString();
+
+			switch (from) {
+				case 'start':
+					if (postData.includes('start')) {
+						input.name = `${this.args.name}[${this.index}][start]`;
+					}
+					input.setAttribute('start', '');
+					if (this.startFixed) {
+						input.setAttribute('fixed', '');
+					}
+					if (this.startConnected) {
+						input.setAttribute('connected', '');
+					}
+
+					return input;
+				case 'end':
+					if (postData.includes('end')) {
+						input.name = `${this.args.name}[${this.index}][end]`;
+					}
+					input.setAttribute('end', '');
+					if (this.endFixed) {
+						input.setAttribute('fixed', '');
+					}
+					if (this.endConnected) {
+						input.setAttribute('connected', '');
+					}
+
+					return input;
+			}
+		};
+
+		const setContainerElementAttributes = (element: HTMLDivElement) => {
+			element.setAttribute('range-container', '');
+
+			return element;
+		};
+
+		const setSizeHolderElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
+			element.setAttribute('range-size', '');
+			switch (this.args.sizeTooltipMode) {
+				case MRSTooltipMode.never:
+					break;
+				case MRSTooltipMode.always:
+					element.setAttribute('size-tooltip-always', '');
+					break;
+				case MRSTooltipMode.onHover:
+					element.setAttribute('size-tooltip-on-hover', '');
+					break;
+			}
+
+			return element;
+		};
+
+		const setStartEndHolderElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
+			element.setAttribute('range', '');
+			switch (this.args.startEndTooltipMode) {
+				case MRSTooltipMode.never:
+					break;
+				case MRSTooltipMode.onHover:
+					element.setAttribute('start-end-tooltip-on-hover', '');
+					break;
+			}
+
+			return element;
+		};
+
+		const createHiddenPostDataInput = (dataKey: string): HTMLInputElement => {
+			const input: HTMLInputElement = document.createElement('input');
+
+			input.type = 'hidden';
+			input.name = `${this.args.name}[${this.index}][${dataKey}]`;
+
+			return input;
+		};
+
+		this.startInput = setStartEndInputAttributes(document.createElement('input'), 'start');
+		this.endInput = setStartEndInputAttributes(document.createElement('input'), 'end');
+		this.containerElement = setContainerElementAttributes(document.createElement('div'));
+		this.sizeHolderElement = setSizeHolderElementAttributes(document.createElement('div'));
+		this.startEndHolderElement = setStartEndHolderElementAttributes(document.createElement('div'));
+
+		this.containerElement.appendChild(this.sizeHolderElement);
+		this.containerElement.appendChild(this.startEndHolderElement);
+
+		const availablePostDataKeys: string[] = Object.getOwnPropertyNames(this.data);
+		this.args.postData.forEach((dataKey: string) => {
+			if (dataKey !== 'start' && dataKey !== 'end' && availablePostDataKeys.includes(dataKey)) {
+				this[`${dataKey}Input`] = createHiddenPostDataInput(dataKey);
+				this.containerElement.appendChild(this[`${dataKey}Input`]);
+			}
+		});
+
+		this.element.appendChild(this.startInput);
+		this.element.appendChild(this.endInput);
+		this.element.appendChild(this.containerElement);
+
+		this.updateRangeElements();
+	}
+
+	public updateRangeElements() {
 		const sliderWidth: number = this.startInput.clientWidth,
 			sliderSize: number = Number(this.startInput.max) - Number(this.startInput.min),
 			startOffset: number = sliderWidth * (this.start - Number(this.startInput.min)) / sliderSize,
 			rangeWidth: number = sliderWidth * this.size / sliderSize;
 
-		this.rangeContainer.style.left = `${startOffset.toString()}px`;
-		this.rangeContainer.style.width = `${rangeWidth.toString()}px`;
-		this.rangeSizeElement.setAttribute('size', this.size.toString());
-		this.rangeStartEndElement.setAttribute('start', this.start.toString());
-		this.rangeStartEndElement.setAttribute('end', this.end.toString());
+		Object.getOwnPropertyNames(this.elements).forEach((elementKey: string) => {
+			if (elementKey === 'container') {
+				this.containerElement.style.left = `${startOffset.toString()}px`;
+				this.containerElement.style.width = `${rangeWidth.toString()}px`;
+			} else if (elementKey === 'sizeHolder') {
+				this.sizeHolderElement.setAttribute('size', this.size.toString());
+			} else if (elementKey === 'startEndHolder') {
+				this.startEndHolderElement.setAttribute('start', this.start.toString());
+				this.startEndHolderElement.setAttribute('end', this.end.toString());
+			} else if (elementKey !== 'start' && elementKey !== 'end') {
+				(this[`${elementKey}Input`] as HTMLInputElement).value = this[elementKey].toString();
+			}
+		});
 	}
 }

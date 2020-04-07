@@ -13,6 +13,7 @@ type MRSArgs = {
 	limitedSizeMode?: MRSLimitedSizeMode;
 	sizeTooltipMode?: MRSTooltipMode;
 	startEndTooltipMode?: MRSTooltipMode;
+	postData?: string[];
 };
 
 type MRSLabels = {
@@ -39,6 +40,7 @@ class MRS {
 		limitedSizeMode: MRSLimitedSizeMode.extendSize,
 		sizeTooltipMode: MRSTooltipMode.onHover,
 		startEndTooltipMode: MRSTooltipMode.onHover,
+		postData: ['start', 'end', 'size'],
 	};
 	private _defaultRangeArgs: any = {
 		start: 0,
@@ -151,7 +153,7 @@ class MRS {
 
 				ranges.forEach((range: any, i: number) => {
 					if (validRange(range)) {
-						cleanedRanges.push(new MRSRange(i, { ...this.defaultRangeArgs, ...range }));
+						cleanedRanges.push({ ...this.defaultRangeArgs, ...range });
 					} else {
 						MRS.logW(`Range on position ${i} is invalid and was removed!`);
 					}
@@ -171,7 +173,7 @@ class MRS {
 			} else {
 				if (typeof ranges !== 'number' || !Number.isInteger(ranges)) {
 					ranges = defaultArgs.ranges;
-					MRS.logW(`Property "ranges" is invalid! Defaul value "${defaultArgs.ranges}" is used instead.`);
+					MRS.logW(`Property "ranges" is invalid! Default value "${defaultArgs.ranges}" is used instead.`);
 				}
 
 				cleanedArgs.ranges = ranges;
@@ -242,33 +244,51 @@ class MRS {
 			}
 		};
 
-		// need to merge default labels into args before cleaning because it is a nested object
+		const cleanPostData = () => {
+			if (Array.isArray(args.postData)) {
+				const cleanedPostData: string[] = [];
+
+				args.postData.forEach((dataKey: any) => {
+					if (typeof dataKey === 'string') {
+						cleanedPostData.push(dataKey);
+					}
+				});
+
+				cleanedArgs.postData = cleanedPostData;
+			} else {
+				MRS.logW(`Property "postData" is not of type array! Default value "${defaultArgs.postData}" is used instead.`);
+			}
+		};
+
+		// need to merge default labels into args before cleaning because it is an object
 		args.labels = { ...defaultArgs.labels, ...args.labels };
+
 		cleanDefaultType('labels.min', 'string');
 		cleanDefaultType('labels.max', 'string');
 		cleanDefaultType('name', 'string');
 		cleanDefaultType('step', 'number');
-
-		// need to validate step here and set it as default range min size
-		// step has to be > 0
-		cleanedArgs.step = cleanedArgs.step > 0 ? cleanedArgs.step : defaultArgs.step;
-		this._defaultRangeArgs.minSize = cleanedArgs.step;
-
 		cleanDefaultType('min', 'number');
 		cleanDefaultType('max', 'number');
 		cleanBoolean('autoMinMax');
 		cleanBoolean('fixToMin');
 		cleanBoolean('fixToMax');
 		cleanBoolean('allowContact');
+		cleanBoolean('connectRanges');
+		cleanLimitedSizeMode();
+		cleanSizeTooltipMode();
+		cleanStartEndTooltipMode();
+		cleanPostData();
+
+		// update default range args before creating ranges
+		// need to validate step and set it as default range min size
+		// step has to be > 0
+		cleanedArgs.step = cleanedArgs.step > 0 ? cleanedArgs.step : defaultArgs.step;
+		this._defaultRangeArgs.minSize = cleanedArgs.step;
 
 		// set default range allow contact
 		this._defaultRangeArgs.allowContact = cleanedArgs.allowContact;
 
 		cleanAndCreateRanges();
-		cleanBoolean('connectRanges');
-		cleanLimitedSizeMode();
-		cleanSizeTooltipMode();
-		cleanStartEndTooltipMode();
 
 		return cleanedArgs;
 	}
@@ -307,6 +327,9 @@ class MRS {
 		// set sizeTooltipMode and startEndTooltipMode
 		validatedArgs.sizeTooltipMode = args.sizeTooltipMode;
 		validatedArgs.startEndTooltipMode = args.startEndTooltipMode;
+
+		// set postData
+		validatedArgs.postData = args.postData;
 
 		if (typeof args.ranges === 'number') {
 			// ranges is still a number, so we still have to create ranges
