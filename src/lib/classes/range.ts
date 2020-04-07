@@ -305,6 +305,14 @@ class MRSRange {
 		return !((this.nextRange && (newEnd + this.minimalSpaceBetweenRanges) > this.nextRange.start) || (newEnd - this.start) < this.minSize);
 	}
 
+	private get startVisuallyConnected(): boolean {
+		return this.previousRange && this.previousRange.end === this.start;
+	}
+
+	private get endVisuallyConnected(): boolean {
+		return this.nextRange && this.nextRange.start === this.end;
+	}
+
 	// shrink range by value, reposition it and return new range start/end
 	public shrinkBy(value: number, from: 'start' | 'end'): number {
 		const maxShrink: number = this.size - this.minSize,
@@ -518,14 +526,14 @@ class MRSRange {
 		this.updateRangeElements();
 	}
 
-	public updateRangeElements() {
-		const sliderWidth: number = this.startInput.clientWidth,
-			sliderSize: number = Number(this.startInput.max) - Number(this.startInput.min),
-			startOffset: number = sliderWidth * (this.start - Number(this.startInput.min)) / sliderSize,
-			rangeWidth: number = sliderWidth * this.size / sliderSize;
-
-		Object.getOwnPropertyNames(this.elements).forEach((elementKey: string) => {
+	public updateRangeElements(elements: string[] = Object.getOwnPropertyNames(this.elements)) {
+		elements.forEach((elementKey: string) => {
 			if (elementKey === 'container') {
+				const sliderWidth: number = this.startInput.clientWidth,
+					sliderSize: number = Number(this.startInput.max) - Number(this.startInput.min),
+					startOffset: number = sliderWidth * (this.start - Number(this.startInput.min)) / sliderSize,
+					rangeWidth: number = sliderWidth * this.size / sliderSize;
+
 				this.containerElement.style.left = `${startOffset.toString()}px`;
 				this.containerElement.style.width = `${rangeWidth.toString()}px`;
 			} else if (elementKey === 'sizeHolder') {
@@ -533,7 +541,27 @@ class MRSRange {
 			} else if (elementKey === 'startEndHolder') {
 				this.startEndHolderElement.setAttribute('start', this.start.toString());
 				this.startEndHolderElement.setAttribute('end', this.end.toString());
-			} else if (elementKey !== 'start' && elementKey !== 'end') {
+			} else if (elementKey === 'start') {
+				if (this.startInput) {
+					if (this.startVisuallyConnected && !this.startInput.hasAttribute('connected')) {
+						this.startInput.setAttribute('connected', '');
+						this.previousRange.updateRangeElements(['end']);
+					} else if (!this.startVisuallyConnected && this.startInput.hasAttribute('connected')) {
+						this.startInput.removeAttribute('connected');
+						this.previousRange.updateRangeElements(['end']);
+					}
+				}
+			} else if (elementKey === 'end') {
+				if (this.endInput) {
+					if (this.endVisuallyConnected && !this.endInput.hasAttribute('connected')) {
+						this.endInput.setAttribute('connected', '');
+						this.nextRange.updateRangeElements(['start']);
+					} else if (!this.endVisuallyConnected && this.endInput.hasAttribute('connected')) {
+						this.endInput.removeAttribute('connected');
+						this.nextRange.updateRangeElements(['start']);
+					}
+				}
+			} else {
 				(this[`${elementKey}Input`] as HTMLInputElement).value = this[elementKey].toString();
 			}
 		});

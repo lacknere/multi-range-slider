@@ -138,6 +138,24 @@
 		&[fixed]::-webkit-slider-thumb {
 			cursor: thumb(fixed-cursor);
 		}
+
+		&[connected] {
+			&[start]::-webkit-slider-thumb {
+				width: thumb(width) / 2;
+				margin-left: thumb(width) / 4;
+				border-left: 0;
+				border-top-left-radius: 0;
+				border-bottom-left-radius: 0;
+			}
+
+			&[end]::-webkit-slider-thumb {
+				width: thumb(width) / 2;
+				margin-left: - (thumb(width) / 4);
+				border-right: 0;
+				border-top-right-radius: 0;
+				border-bottom-right-radius: 0;
+			}
+		}
 	}
 
 	// range
