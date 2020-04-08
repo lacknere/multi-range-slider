@@ -2,6 +2,7 @@ class MRSSlider {
 	private _mrs: MRS;
 
 	constructor(mrs: MRS) {
+		mrs.args.thumbWidth = parseFloat(getComputedStyle(document.body).getPropertyValue('--input-range-thumb-width'));
 		this._mrs = mrs;
 		this.buildHTML();
 

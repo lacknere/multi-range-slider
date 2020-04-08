@@ -11,6 +11,7 @@ $propertyLinkings: (
 	label: false,
 	fixed-cursor: false,
 	offset: false,
+	decorator: false,
 );
 
 @mixin objectProperties($object) {
@@ -32,36 +33,74 @@ $propertyLinkings: (
 	@include objectProperties(slider(label));
 
 	@if $content == min-label {
-		left: - (sliderLabel(width) + sliderLabel(offset));
+		left: - (sliderLabelWidth($includeOffset: true));
 	} @else if $content == max-label {
-		right: - (sliderLabel(width) + sliderLabel(offset));
+		right: - (sliderLabelWidth($includeOffset: true));
 	}
-}
-
-@mixin range {
-	position: absolute;
-	width: 100%;
-	@include objectProperties($range);
 }
 
 @mixin tooltip($content, $opacity, $horizontalAlignment, $verticalAlignment) {
-	content: attr($content);
 	@include flexCenter;
 	position: absolute;
 	@include objectProperties($tooltip);
+	visibility: visible;
 	opacity: $opacity;
 
 	@if $horizontalAlignment == start {
-		left: - tooltip(width);
+		left: - (tooltip(width) + tooltip(border-width) - (thumb(width) / 2));
 	} @else if $horizontalAlignment == center {
-		left: calc(50% - (#{tooltip(width)} / 2));
+		left: calc(50% - (#{tooltipWidth()} / 2));
 	} @else if $horizontalAlignment == end {
-		right: - tooltip(width);
+		right: - (tooltip(width) + tooltip(border-width) - (thumb(width) / 2));
 	}
 
 	@if $verticalAlignment == start {
-		top: - (thumb(height) / 2 + tooltip(height) + tooltip(offset) - range(thickness) / 2);
+		top: - tooltipHeight($includeOffset: true);
 	} @else if $verticalAlignment == end {
-		bottom: - (thumb(height) / 2 + tooltip(height) + tooltip(offset) - range(thickness) / 2);
+		bottom: - tooltipHeight($includeOffset: true);
+	}
+
+	&::before {
+		content: attr($content);
+	}
+
+	@if tooltipDecorator(type) == triangle {
+		@if $horizontalAlignment == start {
+			& {
+				border-top-right-radius: 0;
+			}
+		} @else if $horizontalAlignment == end {
+			& {
+				border-top-left-radius: 0;
+			}
+		}
+
+		&::after {
+			content: "";
+			position: absolute;
+			width: 0;
+			height: 0;
+			border-width: tooltipDecorator(size);
+			border-style: solid;
+			border-color: transparent;
+
+			@if $horizontalAlignment == start {
+				right: - tooltip(border-width);
+			} @else if $horizontalAlignment == center {
+				left: (tooltip(width) / 2) - (tooltipDecorator(size));
+			} @else if $horizontalAlignment == end {
+				left: - tooltip(border-width);
+			}
+
+			@if $verticalAlignment == start {
+				bottom: - (tooltip(border-width) + tooltipDecorator(size));
+				border-bottom-width: 0;
+				border-top-color: inherit;
+			} @else if $verticalAlignment == end {
+				top: - (tooltip(border-width) + tooltipDecorator(size));
+				border-top-width: 0;
+				border-bottom-color: inherit;
+			}
+		}
 	}
 }

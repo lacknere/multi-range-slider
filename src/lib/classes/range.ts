@@ -14,8 +14,10 @@ type MRSRangeArgs = {
 };
 type MRSRangeElements = {
 	container?: HTMLDivElement;
-	sizeHolder?: HTMLDivElement;
-	startEndHolder?: HTMLDivElement;
+	range?: HTMLDivElement;
+	sizeTooltip?: HTMLDivElement;
+	startTooltip?: HTMLDivElement;
+	endTooltip?: HTMLDivElement;
 	start?: HTMLInputElement;
 	startFixed?: HTMLInputElement;
 	startConnected?: HTMLInputElement;
@@ -188,20 +190,36 @@ class MRSRange {
 		this._elements.container = containerElement;
 	}
 
-	public get sizeHolderElement(): HTMLDivElement {
-		return this._elements.sizeHolder;
+	public get rangeElement(): HTMLDivElement {
+		return this._elements.range;
 	}
 
-	public set sizeHolderElement(sizeHolderElement: HTMLDivElement) {
-		this._elements.sizeHolder = sizeHolderElement;
+	public set rangeElement(rangeElement: HTMLDivElement) {
+		this._elements.range = rangeElement;
 	}
 
-	public get startEndHolderElement(): HTMLDivElement {
-		return this._elements.startEndHolder;
+	public get sizeTooltipElement(): HTMLDivElement {
+		return this._elements.sizeTooltip;
 	}
 
-	public set startEndHolderElement(startEndHolderElement: HTMLDivElement) {
-		this._elements.startEndHolder = startEndHolderElement;
+	public set sizeTooltipElement(sizeTooltipElement: HTMLDivElement) {
+		this._elements.sizeTooltip = sizeTooltipElement;
+	}
+
+	public get startTooltipElement(): HTMLDivElement {
+		return this._elements.startTooltip;
+	}
+
+	public set startTooltipElement(startTooltipElement: HTMLDivElement) {
+		this._elements.startTooltip = startTooltipElement;
+	}
+
+	public get endTooltipElement(): HTMLDivElement {
+		return this._elements.endTooltip;
+	}
+
+	public set endTooltipElement(endTooltipElement: HTMLDivElement) {
+		this._elements.endTooltip = endTooltipElement;
 	}
 
 	public get startInput(): HTMLInputElement {
@@ -467,45 +485,36 @@ class MRSRange {
 			return element;
 		};
 
-		const setSizeHolderElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
-			element.setAttribute('range-size', '');
-			switch (this.sliderArgs.sizeTooltipMode) {
-				case MRSTooltipMode.never:
-					break;
-				case MRSTooltipMode.always:
-					element.setAttribute('size-tooltip-always', '');
-					break;
-				case MRSTooltipMode.onHover:
-					element.setAttribute('size-tooltip-on-hover', '');
-					break;
-			}
-			if (this.color) {
-				element.style.backgroundColor = this.color;
-			}
-			if (this.textColor) {
-				element.style.color = this.textColor;
-			}
+		const setRangeElementAttributes = (element: HTMLDivElement) => {
+			element.setAttribute('range', '');
 
 			return element;
 		};
 
-		const setStartEndHolderElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
-			element.setAttribute('range', '');
-			switch (this.sliderArgs.startEndTooltipMode) {
-				case MRSTooltipMode.never:
+		const setTooltipElementAttributes = (element: HTMLDivElement, tooltip: 'size' | 'start' | 'end'): HTMLDivElement => {
+			element.setAttribute('tooltip', '');
+
+			const setTooltipModeAttribute = (mode: MRSTooltipMode) => {
+				switch (mode) {
+					case MRSTooltipMode.never:
+						break;
+					case MRSTooltipMode.always:
+						element.setAttribute('tooltip-always', '');
+						break;
+					case MRSTooltipMode.onHover:
+						element.setAttribute('tooltip-on-hover', '');
+						break;
+				}
+			};
+
+			switch (tooltip) {
+				case 'size':
+					setTooltipModeAttribute(this.sliderArgs.sizeTooltipMode);
 					break;
-				case MRSTooltipMode.always:
-					element.setAttribute('start-end-tooltip-always', '');
+				case 'start':
+				case 'end':
+					setTooltipModeAttribute(this.sliderArgs.startEndTooltipMode);
 					break;
-				case MRSTooltipMode.onHover:
-					element.setAttribute('start-end-tooltip-on-hover', '');
-					break;
-			}
-			if (this.color) {
-				element.style.backgroundColor = this.color;
-			}
-			if (this.textColor) {
-				element.style.color = this.textColor;
 			}
 
 			return element;
@@ -523,11 +532,15 @@ class MRSRange {
 		this.startInput = setStartEndInputAttributes(document.createElement('input'), 'start');
 		this.endInput = setStartEndInputAttributes(document.createElement('input'), 'end');
 		this.containerElement = setContainerElementAttributes(document.createElement('div'));
-		this.sizeHolderElement = setSizeHolderElementAttributes(document.createElement('div'));
-		this.startEndHolderElement = setStartEndHolderElementAttributes(document.createElement('div'));
+		this.rangeElement = setRangeElementAttributes(document.createElement('div'));
+		this.sizeTooltipElement = setTooltipElementAttributes(document.createElement('div'), 'size');
+		this.startTooltipElement = setTooltipElementAttributes(document.createElement('div'), 'start');
+		this.endTooltipElement = setTooltipElementAttributes(document.createElement('div'), 'end');
 
-		this.containerElement.appendChild(this.sizeHolderElement);
-		this.containerElement.appendChild(this.startEndHolderElement);
+		this.containerElement.appendChild(this.rangeElement);
+		this.containerElement.appendChild(this.sizeTooltipElement);
+		this.containerElement.appendChild(this.startTooltipElement);
+		this.containerElement.appendChild(this.endTooltipElement);
 
 		const hiddenPostDataKeys: string[] = this.hiddenPostDataKeys;
 		this.sliderArgs.postData.forEach((postDataKey: string) => {
@@ -547,18 +560,26 @@ class MRSRange {
 	public updateRangeElements(elements: string[] = Object.getOwnPropertyNames(this.elements)) {
 		elements.forEach((elementKey: string) => {
 			if (elementKey === 'container') {
-				const sliderWidth: number = this.startInput.clientWidth,
+				const sliderWidth: number = this.startInput.clientWidth - this.sliderArgs.thumbWidth,
 					sliderSize: number = Number(this.startInput.max) - Number(this.startInput.min),
-					startOffset: number = sliderWidth * (this.start - Number(this.startInput.min)) / sliderSize,
+					startOffset: number = (sliderWidth * (this.start - Number(this.startInput.min)) / sliderSize) + (this.sliderArgs.thumbWidth / 2),
 					rangeWidth: number = sliderWidth * this.size / sliderSize;
 
 				this.containerElement.style.left = `${startOffset.toString()}px`;
 				this.containerElement.style.width = `${rangeWidth.toString()}px`;
-			} else if (elementKey === 'sizeHolder') {
-				this.sizeHolderElement.setAttribute('size', this.size.toString());
-			} else if (elementKey === 'startEndHolder') {
-				this.startEndHolderElement.setAttribute('start', this.start.toString());
-				this.startEndHolderElement.setAttribute('end', this.end.toString());
+				if (this.color) {
+					this.containerElement.style.backgroundColor = this.color;
+					this.containerElement.style.borderColor = this.color;
+				}
+				if (this.textColor) {
+					this.containerElement.style.color = this.textColor;
+				}
+			} else if (elementKey === 'sizeTooltip') {
+				this.sizeTooltipElement.setAttribute('size', this.size.toString());
+			} else if (elementKey === 'startTooltip') {
+				this.startTooltipElement.setAttribute('start', this.start.toString());
+			} else if (elementKey === 'endTooltip') {
+				this.endTooltipElement.setAttribute('end', this.end.toString());
 			} else if (elementKey === 'start') {
 				if (this.startInput) {
 					if (this.startVisuallyConnected && !this.startInput.hasAttribute('connected')) {
@@ -580,7 +601,9 @@ class MRSRange {
 					}
 				}
 			} else {
-				(this[`${elementKey}Input`] as HTMLInputElement).value = this[elementKey].toString();
+				if (this[`${elementKey}Input`] && this[elementKey]) {
+					(this[`${elementKey}Input`] as HTMLInputElement).value = this[elementKey].toString();
+				}
 			}
 		});
 	}

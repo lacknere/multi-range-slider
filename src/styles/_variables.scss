@@ -29,14 +29,20 @@ $tooltip: (
 	width: 30px,
 	height: 20px,
 	offset: 5px,
-	border: none,
+	border-width: 0px,
+	border-style: solid,
 	border-radius: 2px,
 	color: inherit,
+	border-color: inherit,
 	text-color: inherit,
 	text-align: center,
 	font-size: 12px,
 	font-weight: bold,
-	transition: 0.3s
+	transition: 0.3s,
+	decorator: (
+		type: triangle,
+		size: 5px
+	)
 );
 
 // Slider

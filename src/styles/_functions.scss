@@ -22,3 +22,35 @@
 @function tooltip($key) {
 	@return map-get($tooltip, $key);
 }
+
+@function tooltipDecorator($key) {
+	@return map-get(tooltip(decorator), $key);
+}
+
+@function sliderLabelWidth($includeOffset: false) {
+	$baseWidth: sliderLabel(width);
+
+	@if $includeOffset == true {
+		@return $baseWidth + sliderLabel(offset);
+	} @else {
+		@return $baseWidth;
+	}
+}
+
+@function rangeHeight() {
+	@return max(range(thickness), tooltip(height));
+}
+
+@function tooltipWidth() {
+	@return tooltip(width) + (2 * tooltip(border-width));
+}
+
+@function tooltipHeight($includeOffset: false) {
+	$baseHeight: tooltip(height) + (2 * tooltip(border-width));
+
+	@if $includeOffset == true {
+		@return $baseHeight + tooltip(offset);
+	} @else {
+		@return $baseHeight;
+	}
+}

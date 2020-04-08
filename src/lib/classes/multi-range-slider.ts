@@ -16,6 +16,7 @@ type MRSArgs = {
 	startEndTooltipMode?: MRSTooltipMode;
 	postData?: string[];
 	ranges?: MRSRange[] | number;
+	thumbWidth?: number;
 };
 type MRSLabels = {
 	min?: string;

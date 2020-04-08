@@ -2,6 +2,10 @@
 @import 'mixins';
 @import 'functions';
 
+:root {
+	--input-range-thumb-width: #{thumb(width)};
+}
+
 // slider
 [multi-range-slider] {
 	* {
@@ -11,33 +15,33 @@
 
 	@include flexCenter;
 	position: relative;
-	height: thumb(height);
+	height: rangeHeight();
 	@include objectProperties($slider);
 
 	// change slider margin based on labels/tooltip usage
 	&[min-label] {
-		margin-left: slider(margin) + sliderLabel(width) + sliderLabel(offset);
+		margin-left: slider(margin) + sliderLabelWidth($includeOffset: true);
 	}
 
 	&[max-label] {
-		margin-right: slider(margin) + sliderLabel(width) + sliderLabel(offset);
+		margin-right: slider(margin) + sliderLabelWidth($includeOffset: true);
 	}
 
 	&[size-tooltip] {
-		margin-top: slider(margin) + tooltip(height) + tooltip(offset);
+		margin-top: slider(margin) + tooltipHeight($includeOffset: true);
 	}
 
 	&[start-end-tooltip] {
-		margin-left: slider(margin) + tooltip(width);
-		margin-right: slider(margin) + tooltip(width);
-		margin-bottom: slider(margin) + tooltip(height) + tooltip(offset);
+		margin-left: slider(margin) + tooltipWidth();
+		margin-right: slider(margin) + tooltipWidth();
+		margin-bottom: slider(margin) + tooltipHeight($includeOffset: true);
 
 		&[min-label] {
-			margin-left: slider(margin) + max(tooltip(width), sliderLabel(width) + sliderLabel(offset));
+			margin-left: slider(margin) + max(tooltipWidth(), sliderLabelWidth($includeOffset: true));
 		}
 
 		&[max-label] {
-			margin-right: slider(margin) + max(tooltip(width), sliderLabel(width) + sliderLabel(offset));
+			margin-right: slider(margin) + max(tooltipWidth(), sliderLabelWidth($includeOffset: true));
 		}
 	}
 
@@ -56,7 +60,7 @@
 		position: absolute;
 		z-index: -2;
 		width: 100%;
-		height: thumb(height);
+		height: rangeHeight();
 
 		[track] {
 			width: 100%;
@@ -78,10 +82,8 @@
 
 		&:hover {
 			+ input[type=range] + [range-container], + [range-container] {
-				[range][start-end-tooltip-on-hover], [range-size][size-tooltip-on-hover] {
-					&::before, &::after {
-						opacity: 1;
-					}
+				[tooltip][tooltip-on-hover] {
+					opacity: 1;
 				}
 			}
 		}
@@ -163,49 +165,54 @@
 		@include flexCenter;
 		position: absolute;
 		z-index: 0;
-		height: thumb(height);
-
-		[range-size] {
-			@include range;
-
-			&[size-tooltip-always]::before {
-				@include tooltip(size, 1, center, start);
-			}
-
-			&[size-tooltip-on-hover]::before {
-				@include tooltip(size, 0, center, start);
-			}
-		}
+		height: rangeHeight();
+		background-color: range(color);
+		border-color: range(color);
+		color: range(text-color);
+		visibility: hidden;
 
 		[range] {
-			@include range;
+			position: absolute;
+			width: 100%;
+			height: range(thickness);
+			background-color: inherit;
+			color: inherit;
+			visibility: visible;
+		}
 
-			&[start-end-tooltip-always] {
-				&::before {
+		[tooltip] {
+			&[tooltip-always] {
+				&[size] {
+					@include tooltip(size, 1, center, start);
+				}
+
+				&[start] {
 					@include tooltip(start, 1, start, end)
 				}
 
-				&::after {
+				&[end] {
 					@include tooltip(end, 1, end, end)
 				}
 			}
 
-			&[start-end-tooltip-on-hover] {
-				&::before {
+			&[tooltip-on-hover] {
+				&[size] {
+					@include tooltip(size, 0, center, start);
+				}
+
+				&[start] {
 					@include tooltip(start, 0, start, end)
 				}
 
-				&::after {
+				&[end] {
 					@include tooltip(end, 0, end, end)
 				}
 			}
 		}
 
 		&:hover {
-			[range][start-end-tooltip-on-hover], [range-size][size-tooltip-on-hover] {
-				&::before, &::after {
-					opacity: 1;
-				}
+			[tooltip][tooltip-on-hover] {
+				opacity: 1;
 			}
 		}
 	}
