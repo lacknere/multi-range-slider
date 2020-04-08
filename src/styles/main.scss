@@ -180,6 +180,16 @@
 		[range] {
 			@include range;
 
+			&[start-end-tooltip-always] {
+				&::before {
+					@include tooltip(start, 1, start, end)
+				}
+
+				&::after {
+					@include tooltip(end, 1, end, end)
+				}
+			}
+
 			&[start-end-tooltip-on-hover] {
 				&::before {
 					@include tooltip(start, 0, start, end)

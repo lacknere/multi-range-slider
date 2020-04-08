@@ -1,4 +1,4 @@
-type MRSRangeData = {
+type MRSRangeArgs = {
 	key: any;
 	start: number;
 	startFixed: boolean;
@@ -7,12 +7,11 @@ type MRSRangeData = {
 	endFixed: boolean;
 	endConnected: boolean;
 	minSize: number;
-	size: number;
 	allowContact: boolean;
 	color: string;
 	textColor: string;
+	size?: number;
 };
-
 type MRSRangeElements = {
 	container?: HTMLDivElement;
 	sizeHolder?: HTMLDivElement;
@@ -32,28 +31,36 @@ type MRSRangeElements = {
 
 class MRSRange {
 	private _index: number;
-	private _data: MRSRangeData;
+	private _args: MRSRangeArgs;
 	private _slider: MRSSlider;
 	private _elements: MRSRangeElements = {};
 	private _previousRange: MRSRange;
 	private _nextRange: MRSRange;
 
-	constructor(index: number, data: any) {
+	constructor(index: number, args: MRSRangeArgs) {
 		this._index = index;
-		this._data = data;
-		this._data.size = this.size;
+		this._args = args;
+		this._args.size = this.size;
 	}
 
 	public get index(): number {
 		return this._index;
 	}
 
-	// data getters/setters
-	public get data(): MRSRangeData {
-		return this._data;
+	public static get requiredArgs(): string[] {
+		return [
+			'start',
+			'end'
+		];
 	}
 
-	public get hiddenDataKeys(): string[] {
+	// args getters/setters
+
+	public get args(): MRSRangeArgs {
+		return this._args;
+	}
+
+	public get hiddenPostDataKeys(): string[] {
 		return [
 			'startFixed',
 			'startConnected',
@@ -68,87 +75,89 @@ class MRSRange {
 	}
 
 	public get key(): any {
-		return this._data.key ? this._data.key : this.index;
+		return this._args.key ? this._args.key : this.index;
 	}
 
 	public get start(): number {
-		return this._data.start;
+		return this._args.start;
 	}
 
 	public set start(start: number) {
-		this._data.start = start;
+		this._args.start = start;
 	}
 
 	public get startFixed(): boolean {
-		return this._data.startFixed;
+		return this._args.startFixed;
 	}
 
 	public set startFixed(startFixed: boolean) {
-		this._data.startFixed = startFixed;
+		this._args.startFixed = startFixed;
 	}
 
 	public get startConnected(): boolean {
-		return this._data.startConnected;
+		return this._args.startConnected;
 	}
 
 	public set startConnected(startConnected: boolean) {
-		this._data.startConnected = startConnected;
+		this._args.startConnected = startConnected;
 	}
 
 	public get end(): number {
-		return this._data.end;
+		return this._args.end;
 	}
 
 	public set end(end: number) {
-		this._data.end = end;
+		this._args.end = end;
 	}
 
 	public get endFixed(): boolean {
-		return this._data.endFixed;
+		return this._args.endFixed;
 	}
 
 	public set endFixed(endFixed: boolean) {
-		this._data.endFixed = endFixed;
+		this._args.endFixed = endFixed;
 	}
 
 	public get endConnected(): boolean {
-		return this._data.endConnected;
+		return this._args.endConnected;
 	}
 
 	public set endConnected(endConnected: boolean) {
-		this._data.endConnected = endConnected;
+		this._args.endConnected = endConnected;
 	}
 
 	public get minSize(): number {
-		return this._data.minSize;
+		return this._args.minSize;
 	}
 
 	public get allowContact(): boolean {
-		return this._data.allowContact;
+		return this._args.allowContact;
 	}
 
 	public get color(): string {
-		return this._data.color;
+		return this._args.color;
 	}
 
 	public get textColor(): string {
-		return this._data.textColor;
+		return this._args.textColor;
 	}
 
 	// slider getters/setter
+
 	public set slider(slider: MRSSlider) {
 		this._slider = slider;
 	}
 
-	public get element(): HTMLElement {
+	public get sliderElement(): HTMLElement {
 		return this._slider.element;
 	}
 
-	public get args(): MRSArgs {
+	public get sliderArgs(): MRSArgs {
 		return this._slider.args;
 	}
 
 	// neighbor range getters/setters
+
 	public get previousRange(): MRSRange {
 		return this._previousRange;
 	}
@@ -166,6 +175,7 @@ class MRSRange {
 	}
 
 	// HTML element getters/setters
+
 	public get elements(): MRSRangeElements {
 		return this._elements;
 	}
@@ -289,20 +299,21 @@ class MRSRange {
 	}
 
 	// additional getters/setters
+
 	public get size(): number {
 		return this.end - this.start;
 	}
 
-	private get minimalSpaceBetweenRanges(): number {
-		return this.allowContact ? 0 : this.minSize;
+	private getMinimalSpaceBetweenRanges(compareRange: MRSRange): number {
+		return compareRange.allowContact && this.allowContact ? 0 : this.sliderArgs.step;
 	}
 
 	private isNewStartAllowed(newStart: number): boolean {
-		return !((this.previousRange && newStart < (this.previousRange.end + this.minimalSpaceBetweenRanges)) || (this.end - newStart) < this.minSize);
+		return !((this.previousRange && newStart < (this.previousRange.end + this.getMinimalSpaceBetweenRanges(this.previousRange))) || (this.end - newStart) < this.minSize);
 	}
 
 	private isNewEndAllowed(newEnd): boolean {
-		return !((this.nextRange && (newEnd + this.minimalSpaceBetweenRanges) > this.nextRange.start) || (newEnd - this.start) < this.minSize);
+		return !((this.nextRange && (newEnd + this.getMinimalSpaceBetweenRanges(this.nextRange)) > this.nextRange.start) || (newEnd - this.start) < this.minSize);
 	}
 
 	private get startVisuallyConnected(): boolean {
@@ -349,6 +360,8 @@ class MRSRange {
 				return this.start;
 		}
 	}
+
+	// start/end changed listeners
 
 	private startInputChanged(event: Event, by?: number) {
 		const startInput: number = by ? this.start + by : Number(this.startInput.value),
@@ -398,6 +411,8 @@ class MRSRange {
 		return setNewEnd;
 	}
 
+	// functions
+
 	public moveRange(from: 'start' | 'end', by: number): boolean {
 		switch (from) {
 			case 'start':
@@ -409,7 +424,7 @@ class MRSRange {
 
 	public buildHTML() {
 		const setStartEndInputAttributes = (input: HTMLInputElement, from: 'start' | 'end'): HTMLInputElement => {
-			const { step, min, max, postData } = this.args;
+			const { step, min, max, postData } = this.sliderArgs;
 
 			input.type = 'range';
 			input.step = step.toString();
@@ -419,7 +434,7 @@ class MRSRange {
 			switch (from) {
 				case 'start':
 					if (postData.includes('start')) {
-						input.name = `${this.args.name}[${this.key}][start]`;
+						input.name = `${this.sliderArgs.name}[${this.key}][start]`;
 					}
 					input.setAttribute('start', '');
 					if (this.startFixed) {
@@ -432,7 +447,7 @@ class MRSRange {
 					return input;
 				case 'end':
 					if (postData.includes('end')) {
-						input.name = `${this.args.name}[${this.key}][end]`;
+						input.name = `${this.sliderArgs.name}[${this.key}][end]`;
 					}
 					input.setAttribute('end', '');
 					if (this.endFixed) {
@@ -454,7 +469,7 @@ class MRSRange {
 
 		const setSizeHolderElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
 			element.setAttribute('range-size', '');
-			switch (this.args.sizeTooltipMode) {
+			switch (this.sliderArgs.sizeTooltipMode) {
 				case MRSTooltipMode.never:
 					break;
 				case MRSTooltipMode.always:
@@ -476,8 +491,11 @@ class MRSRange {
 
 		const setStartEndHolderElementAttributes = (element: HTMLDivElement): HTMLDivElement => {
 			element.setAttribute('range', '');
-			switch (this.args.startEndTooltipMode) {
+			switch (this.sliderArgs.startEndTooltipMode) {
 				case MRSTooltipMode.never:
+					break;
+				case MRSTooltipMode.always:
+					element.setAttribute('start-end-tooltip-always', '');
 					break;
 				case MRSTooltipMode.onHover:
 					element.setAttribute('start-end-tooltip-on-hover', '');
@@ -493,11 +511,11 @@ class MRSRange {
 			return element;
 		};
 
-		const createHiddenPostDataInput = (dataKey: string): HTMLInputElement => {
+		const createHiddenPostDataInput = (postDataKey: string): HTMLInputElement => {
 			const input: HTMLInputElement = document.createElement('input');
 
 			input.type = 'hidden';
-			input.name = `${this.args.name}[${this.key}][${dataKey}]`;
+			input.name = `${this.sliderArgs.name}[${this.key}][${postDataKey}]`;
 
 			return input;
 		};
@@ -511,17 +529,17 @@ class MRSRange {
 		this.containerElement.appendChild(this.sizeHolderElement);
 		this.containerElement.appendChild(this.startEndHolderElement);
 
-		const hiddenDataKeys: string[] = this.hiddenDataKeys;
-		this.args.postData.forEach((dataKey: string) => {
-			if (hiddenDataKeys.includes(dataKey) && this[dataKey] !== undefined) {
-				this[`${dataKey}Input`] = createHiddenPostDataInput(dataKey);
-				this.containerElement.appendChild(this[`${dataKey}Input`]);
+		const hiddenPostDataKeys: string[] = this.hiddenPostDataKeys;
+		this.sliderArgs.postData.forEach((postDataKey: string) => {
+			if (hiddenPostDataKeys.includes(postDataKey) && this[postDataKey] !== undefined) {
+				this[`${postDataKey}Input`] = createHiddenPostDataInput(postDataKey);
+				this.containerElement.appendChild(this[`${postDataKey}Input`]);
 			}
 		});
 
-		this.element.appendChild(this.startInput);
-		this.element.appendChild(this.endInput);
-		this.element.appendChild(this.containerElement);
+		this.sliderElement.appendChild(this.startInput);
+		this.sliderElement.appendChild(this.endInput);
+		this.sliderElement.appendChild(this.containerElement);
 
 		this.updateRangeElements();
 	}

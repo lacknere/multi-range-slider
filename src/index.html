@@ -13,25 +13,33 @@
 					min: 2,
 					max: 70,
 					fixToMin: true,
+					fixToMax: false,
+					minSize: 0.5,
 					ranges: [
 						{
 							key: 'range1',
 							start: 0,
 							end: 10,
+							minSize: 13,
+							endFixed: true,
+							allowContact: false,
 							color: 'lightcoral'
 						}, {
 							start: 22,
 							end: 29
 						}, {
 							key: 'range3',
-							start: 50,
+							start: 56,
+							startFixed: true,
 							end: 60,
+							allowContact: true,
 							color: 'yellow',
 							textColor: 'black'
 						}
 					],
 					allowContact: true,
 					connectRanges: false,
+					connectMode: 'center',
 					limitedSizeMode: 'extendSize',
 					sizeTooltipMode: 'always',
 					startEndTooltipMode: 'onHover',

@@ -40,6 +40,7 @@ class MRSSlider {
 		switch (this.args.startEndTooltipMode) {
 			case MRSTooltipMode.never:
 				break;
+			case MRSTooltipMode.always:
 			case MRSTooltipMode.onHover:
 				this.element.setAttribute('start-end-tooltip', '');
 				break;

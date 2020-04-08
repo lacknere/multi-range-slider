@@ -7,20 +7,21 @@ type MRSArgs = {
 	autoMinMax?: boolean;
 	fixToMin?: boolean;
 	fixToMax?: boolean;
+	minSize?: number;
 	allowContact?: boolean;
-	ranges?: number | MRSRange[];
 	connectRanges?: boolean;
+	connectMode?: MRSConnectMode;
 	limitedSizeMode?: MRSLimitedSizeMode;
 	sizeTooltipMode?: MRSTooltipMode;
 	startEndTooltipMode?: MRSTooltipMode;
 	postData?: string[];
+	ranges?: MRSRange[] | number;
 };
-
 type MRSLabels = {
 	min?: string;
 	max?: string;
 };
-
+enum MRSConnectMode { keepStart, center, keepEnd }
 enum MRSLimitedSizeMode { extendSize, shrinkRanges, shrinkRangesProportionally }
 enum MRSTooltipMode { never, always, onHover }
 
@@ -34,15 +35,38 @@ class MRS {
 		autoMinMax: false,
 		fixToMin: false,
 		fixToMax: false,
+		minSize: 1,
 		allowContact: true,
-		ranges: 1,
 		connectRanges: false,
+		connectMode: MRSConnectMode.center,
 		limitedSizeMode: MRSLimitedSizeMode.extendSize,
-		sizeTooltipMode: MRSTooltipMode.onHover,
+		sizeTooltipMode: MRSTooltipMode.always,
 		startEndTooltipMode: MRSTooltipMode.onHover,
 		postData: ['start', 'end', 'size'],
+		ranges: 1,
 	};
-	private _defaultRangeArgs: any = {
+	private _argsCleaningFunctions: any = {
+		labels: { min: MRSTypeCleaner.cleanString, max: MRSTypeCleaner.cleanString },
+		name: MRSTypeCleaner.cleanString,
+		step: MRSTypeCleaner.cleanNumber,
+		min: MRSTypeCleaner.cleanNumber,
+		max: MRSTypeCleaner.cleanNumber,
+		autoMinMax: MRSTypeCleaner.cleanBoolean,
+		fixToMin: MRSTypeCleaner.cleanBoolean,
+		fixToMax: MRSTypeCleaner.cleanBoolean,
+		minSize: MRSTypeCleaner.cleanNumber,
+		allowContact: MRSTypeCleaner.cleanBoolean,
+		connectRanges: MRSTypeCleaner.cleanBoolean,
+		connectMode: MRSTypeCleaner.cleanConnectMode,
+		limitedSizeMode: MRSTypeCleaner.cleanLimitedSizeMode,
+		sizeTooltipMode: MRSTypeCleaner.cleanTooltipMode,
+		startEndTooltipMode: MRSTypeCleaner.cleanTooltipMode,
+		postData: MRSTypeCleaner.cleanStringArray,
+		ranges: this.cleanRangeArray,
+	};
+
+	private _defaultRangeArgs: MRSRangeArgs = {
+		key: undefined,
 		start: 0,
 		startFixed: false,
 		startConnected: false,
@@ -51,6 +75,21 @@ class MRS {
 		endConnected: false,
 		minSize: 1,
 		allowContact: true,
+		color: undefined,
+		textColor: undefined,
+	};
+	private _rangeArgsCleaningFunctions: any = {
+		key: MRSTypeCleaner.cleanString,
+		start: MRSTypeCleaner.cleanNumber,
+		startFixed: MRSTypeCleaner.cleanBoolean,
+		startConnected: MRSTypeCleaner.cleanBoolean,
+		end: MRSTypeCleaner.cleanNumber,
+		endFixed: MRSTypeCleaner.cleanBoolean,
+		endConnected: MRSTypeCleaner.cleanBoolean,
+		minSize: MRSTypeCleaner.cleanNumber,
+		allowContact: MRSTypeCleaner.cleanBoolean,
+		color: MRSTypeCleaner.cleanString,
+		textColor: MRSTypeCleaner.cleanString,
 	};
 
 	private _element: HTMLElement;
@@ -59,16 +98,26 @@ class MRS {
 
 	constructor(element: HTMLElement, args: any) {
 		this._element = element;
-		this._args = this.validateArgs({ ...this.defaultArgs, ...args });
+		this._args = { ...this.defaultArgs, ...args };
+		this.validateArgs();
+		console.log(this.args);
 		this._slider = new MRSSlider(this);
 	}
+
+	// getters
 
 	private get defaultArgs(): MRSArgs {
 		return { ...this._defaultArgs };
 	}
 
-	private get defaultRangeArgs(): any {
-		return { ...this._defaultRangeArgs };
+	private get defaultRangeArgs(): MRSRangeArgs {
+		return {
+			...this._defaultRangeArgs,
+			minSize: this.args.minSize,
+			allowContact: this.args.allowContact,
+			startConnected: this.args.connectRanges,
+			endConnected: this.args.connectRanges,
+		};
 	}
 
 	public get element(): HTMLElement {
@@ -79,349 +128,307 @@ class MRS {
 		return this._args;
 	}
 
-	private cleanArgs(args: any): MRSArgs {
-		const defaultArgs: MRSArgs = this.defaultArgs,
-			cleanedArgs: MRSArgs = {};
+	// nested arg functions
 
-		const getNestedArg = (rootArgs: any, key: string): any => {
-			const splitKeys: string[] = key.split('.');
+	private iterateNestedArg(rootArgs: any, callback: (key: string, value: any) => void) {
+		const splitKeys: string[] = [];
 
-			if (splitKeys.length === 1) {
-				return rootArgs[key];
-			}
+		const iterateArg = (arg: object) => {
+			for (const argKey in arg) {
+				if (arg.hasOwnProperty(argKey)) {
+					splitKeys.push(argKey);
+					const nestedArg: any = arg[argKey];
 
-			let arg: any = rootArgs[splitKeys[0]];
-
-			splitKeys.shift();
-			splitKeys.forEach((splitKey: string) => {
-				arg = arg[splitKey];
-			});
-
-			return arg;
-		};
-
-		const setNestedArg = (rootArgs: any, key: string, value: any) => {
-			let schema: any = rootArgs;  // a moving reference to internal args within rootArgs
-			const splitKeys: string[] = key.split('.'),
-				keysLength: number = splitKeys.length;
-
-			for (let i = 0; i < keysLength - 1; i++) {
-				const argKey = splitKeys[i];
-
-				if (!schema[argKey]) {
-					schema[argKey] = {};
-				}
-				schema = schema[argKey];
-			}
-
-			schema[splitKeys[keysLength - 1]] = value;
-		};
-
-		const cleanDefaultType = (key: string, type: string) => {
-			const arg: any = getNestedArg(args, key),
-				defaultArg: any = getNestedArg(defaultArgs, key);
-
-			if (typeof arg === type) {
-				setNestedArg(cleanedArgs, key, arg);
-			} else {
-				setNestedArg(cleanedArgs, key, defaultArg);
-				MRS.logW(`Property "${key}" is not of type ${type}! Default value "${defaultArg}" is used instead.`);
-			}
-		};
-
-		const cleanBoolean = (key: string) => {
-			if (args[key] === true || args[key] === 1 || args[key] === 'true') {
-				cleanedArgs[key] = true;
-			} else if (args[key] === false || args[key] === 0 || args[key] === 'false') {
-				cleanedArgs[key] = false;
-			} else {
-				cleanedArgs[key] = defaultArgs[key];
-				MRS.logW(`Property "${key}" is not of type boolean! Default value "${defaultArgs[key]}" is used instead.`);
-			}
-		};
-
-		const cleanAndCreateRanges = () => {
-			let ranges: any = args.ranges;
-
-			const validRange = (range: any): boolean => {
-				return range.hasOwnProperty('start') && typeof range.start === 'number' && range.hasOwnProperty('end') && typeof range.end === 'number';
-			};
-
-			if (Array.isArray(ranges)) {
-				// ranges is an array, check and create range objects
-				const cleanedRanges: any[] = [];
-
-				ranges.forEach((range: any, i: number) => {
-					if (validRange(range)) {
-						cleanedRanges.push({ ...this.defaultRangeArgs, ...range });
+					if (typeof nestedArg === 'object' && !Array.isArray(nestedArg)) {
+						iterateArg(nestedArg);
 					} else {
-						MRS.logW(`Range on position ${i} is invalid and was removed!`);
+						const fullKey: string = splitKeys.join('.');
+
+						callback(fullKey, nestedArg);
+						splitKeys.pop();
 					}
-				});
-
-				cleanedArgs.ranges = cleanedRanges.map((cleanedRange: any, i: number) => {
-					return new MRSRange(i, cleanedRange);
-				});
-			} else if (typeof ranges === 'object') {
-				// ranges is a single object, check and create array with range object
-				if (validRange(ranges)) {
-					cleanedArgs.ranges = [new MRSRange(0, { ...this.defaultRangeArgs, ...ranges })];
-				} else {
-					cleanedArgs.ranges = 1;
-					MRS.logW(`Range is invalid and was replaced by default range!`);
 				}
-			} else {
-				if (typeof ranges !== 'number' || !Number.isInteger(ranges)) {
-					ranges = defaultArgs.ranges;
-					MRS.logW(`Property "ranges" is invalid! Default value "${defaultArgs.ranges}" is used instead.`);
-				}
-
-				cleanedArgs.ranges = ranges;
 			}
+
+			splitKeys.pop();
 		};
 
-		const cleanLimitedSizeMode = () => {
-			switch (args.limitedSizeMode) {
-				case 'extendSize':
-					cleanedArgs.limitedSizeMode = MRSLimitedSizeMode.extendSize;
-					break;
-				case 'shrinkRanges':
-					cleanedArgs.limitedSizeMode = MRSLimitedSizeMode.shrinkRanges;
-					break;
-				case 'shrinkRangesProportionally':
-					cleanedArgs.limitedSizeMode = MRSLimitedSizeMode.shrinkRangesProportionally;
-					break;
-				case MRSLimitedSizeMode.extendSize:
-				case MRSLimitedSizeMode.shrinkRanges:
-				case MRSLimitedSizeMode.shrinkRangesProportionally:
-					cleanedArgs.limitedSizeMode = args.limitedSizeMode;
-					break;
-				default:
-					cleanedArgs.limitedSizeMode = defaultArgs.limitedSizeMode;
-					break;
-			}
-		};
-
-		const cleanSizeTooltipMode = () => {
-			switch (args.sizeTooltipMode) {
-				case 'never':
-					cleanedArgs.sizeTooltipMode = MRSTooltipMode.never;
-					break;
-				case 'always':
-					cleanedArgs.sizeTooltipMode = MRSTooltipMode.always;
-					break;
-				case 'onHover':
-					cleanedArgs.sizeTooltipMode = MRSTooltipMode.onHover;
-					break;
-				case MRSTooltipMode.never:
-				case MRSTooltipMode.always:
-				case MRSTooltipMode.onHover:
-					cleanedArgs.sizeTooltipMode = args.sizeTooltipMode;
-					break;
-				default:
-					cleanedArgs.sizeTooltipMode = defaultArgs.sizeTooltipMode;
-					break;
-			}
-		};
-
-		const cleanStartEndTooltipMode = () => {
-			switch (args.startEndTooltipMode) {
-				case 'never':
-					cleanedArgs.startEndTooltipMode = MRSTooltipMode.never;
-					break;
-				case 'always':
-				case MRSTooltipMode.always:
-				case 'onHover':
-					cleanedArgs.startEndTooltipMode = MRSTooltipMode.onHover;
-					break;
-				case MRSTooltipMode.never:
-				case MRSTooltipMode.onHover:
-					cleanedArgs.startEndTooltipMode = args.startEndTooltipMode;
-					break;
-				default:
-					cleanedArgs.startEndTooltipMode = defaultArgs.startEndTooltipMode;
-					break;
-			}
-		};
-
-		const cleanPostData = () => {
-			if (Array.isArray(args.postData)) {
-				const cleanedPostData: string[] = [];
-
-				args.postData.forEach((dataKey: any) => {
-					if (typeof dataKey === 'string') {
-						cleanedPostData.push(dataKey);
-					}
-				});
-
-				cleanedArgs.postData = cleanedPostData;
-			} else {
-				MRS.logW(`Property "postData" is not of type array! Default value "${defaultArgs.postData}" is used instead.`);
-			}
-		};
-
-		// need to merge default labels into args before cleaning because it is an object
-		args.labels = { ...defaultArgs.labels, ...args.labels };
-
-		cleanDefaultType('labels.min', 'string');
-		cleanDefaultType('labels.max', 'string');
-		cleanDefaultType('name', 'string');
-		cleanDefaultType('step', 'number');
-		cleanDefaultType('min', 'number');
-		cleanDefaultType('max', 'number');
-		cleanBoolean('autoMinMax');
-		cleanBoolean('fixToMin');
-		cleanBoolean('fixToMax');
-		cleanBoolean('allowContact');
-		cleanBoolean('connectRanges');
-		cleanLimitedSizeMode();
-		cleanSizeTooltipMode();
-		cleanStartEndTooltipMode();
-		cleanPostData();
-
-		// update default range args before creating ranges
-		// need to validate step and set it as default range min size
-		// step has to be > 0
-		cleanedArgs.step = cleanedArgs.step > 0 ? cleanedArgs.step : defaultArgs.step;
-		this._defaultRangeArgs.minSize = cleanedArgs.step;
-
-		// set default range allow contact
-		this._defaultRangeArgs.allowContact = cleanedArgs.allowContact;
-
-		cleanAndCreateRanges();
-
-		return cleanedArgs;
+		iterateArg(rootArgs);
 	}
 
-	private validateArgs(args: MRSArgs): MRSArgs {
-		args = this.cleanArgs(args);
-		const validatedArgs: MRSArgs = {};
+	private getNestedArg(rootArgs: any, key: string): any {
+		const splitKeys: string[] = key.split('.');
 
-		const getMinRequiredSize = (rangesLength: number) => {
-			return (rangesLength * validatedArgs.step) + (validatedArgs.allowContact ? 0 : ((rangesLength - 1) * validatedArgs.step));
+		if (splitKeys.length === 1) {
+			return rootArgs[key];
+		}
+
+		let arg: any = rootArgs[splitKeys[0]];
+
+		splitKeys.shift();
+		splitKeys.forEach((splitKey: string) => {
+			arg = arg[splitKey];
+		});
+
+		return arg;
+	}
+
+	private setNestedArg(rootArgs: any, key: string, value: any, deleteArg: boolean = false) {
+		let schema: any = rootArgs;  // a moving reference to internal args within rootArgs
+		const splitKeys: string[] = key.split('.'),
+			keysLength: number = splitKeys.length;
+
+		for (let i = 0; i < keysLength - 1; i++) {
+			const argKey = splitKeys[i];
+
+			if (!schema[argKey]) {
+				schema[argKey] = {};
+			}
+			schema = schema[argKey];
+		}
+
+		if (!deleteArg) {
+			schema[splitKeys[keysLength - 1]] = value;
+		} else {
+			delete schema[splitKeys[keysLength - 1]];
+		}
+	}
+
+	// type cleaning
+
+
+
+	// arg cleaning
+	private cleanRangeArray(key: string, ranges: any): MRSRange[] | number {
+		let cleanedRangeArray: any[] | number;
+
+		if (Array.isArray(ranges)) {
+			cleanedRangeArray = MRSTypeCleaner.cleanArray(key, ranges, this.cleanRangeArgs.bind(this));
+		} else if (typeof ranges === 'object') {
+			cleanedRangeArray = MRSTypeCleaner.cleanArray(key, [ranges], this.cleanRangeArgs.bind(this));
+		} else {
+			if (typeof ranges !== 'number' || !Number.isInteger(ranges)) {
+				const defaultRangeArray = this.defaultArgs.ranges;
+				cleanedRangeArray = defaultRangeArray;
+				MRSErrorHandler.throwWrongTypeReplaced(key, 'range or number', defaultRangeArray);
+			} else {
+				cleanedRangeArray = ranges;
+			}
+		}
+
+		if (Array.isArray(cleanedRangeArray)) {
+			cleanedRangeArray = cleanedRangeArray.map((cleanedRangeArgs: MRSRangeArgs, i: number) => new MRSRange(i, cleanedRangeArgs));
+		}
+
+		return cleanedRangeArray;
+	}
+
+	private getAvailableArgKeys(type: 'slider' | 'range'): string[] {
+		let args: MRSArgs | MRSRangeArgs;
+		const availableArgKeys: string[] = [];
+
+		switch (type) {
+			case 'slider':
+				args = this.defaultArgs;
+				break;
+			case 'range':
+				args = this.defaultRangeArgs;
+				break;
+		}
+		this.iterateNestedArg(args, (key: string, _) => availableArgKeys.push(key));
+
+		return availableArgKeys;
+	}
+
+	private cleanRangeArgs(key: string, rangeArgs: any): MRSRangeArgs {
+		const defaultRangeArgs: MRSArgs = this.defaultRangeArgs,
+			availableRangeArgKeys: string[] = this.getAvailableArgKeys('range');
+		let validRangeArgs: boolean = true;
+
+		MRSRange.requiredArgs.forEach((argKey: string) => {
+			if (rangeArgs[argKey] === undefined) {
+				MRSErrorHandler.throwRangeMissingArgRemoved(key, argKey);
+				validRangeArgs = false;
+			}
+		});
+
+		if (validRangeArgs) {
+			this.iterateNestedArg(rangeArgs, (argKey: string, arg: any) => {
+				const fullKey: string = `${key}.${argKey}`;
+				if (availableRangeArgKeys.includes(argKey)) {
+					const argCleaningFunction: (key: string, value: any, defaultValue: any) => any = this.getNestedArg(this._rangeArgsCleaningFunctions, argKey).bind(this),
+						defaultArg: any = this.getNestedArg(defaultRangeArgs, argKey),
+						cleanedArg: any = argCleaningFunction(fullKey, arg, defaultArg);
+
+					this.setNestedArg(rangeArgs, argKey, cleanedArg);
+				} else {
+					MRSErrorHandler.throwUnavailableArgRemoved(fullKey);
+					this.setNestedArg(rangeArgs, argKey, null, true);
+				}
+			});
+
+			return { ...defaultRangeArgs, ...rangeArgs };
+		}
+	}
+
+	private cleanArgs() {
+		const args: MRSArgs = this.args,
+			defaultArgs: MRSArgs = this.defaultArgs,
+			availableArgKeys: string[] = this.getAvailableArgKeys('slider');
+
+		this.iterateNestedArg(args, (argKey: string, arg: any) => {
+			if (availableArgKeys.includes(argKey)) {
+				const argCleaningFunction: (key: string, value: any, defaultValue: any) => any = this.getNestedArg(this._argsCleaningFunctions, argKey).bind(this),
+					defaultArg: any = this.getNestedArg(defaultArgs, argKey),
+					cleanedArg: any = argCleaningFunction(argKey, arg, defaultArg);
+
+				this.setNestedArg(args, argKey, cleanedArg);
+			} else {
+				MRSErrorHandler.throwUnavailableArgRemoved(argKey);
+				this.setNestedArg(args, argKey, null, true);
+			}
+		});
+	}
+
+	// arg validating
+
+	private validateArgs() {
+		this.cleanArgs();
+
+		const args: MRSArgs = this.args;
+
+		const getMinRequiredSize = (): number => {
+			if (Array.isArray(args.ranges)) {
+				let minRequiredSize: number = 0;
+
+				args.ranges.forEach((range: MRSRange, i: number) => {
+					const nextRange: MRSRange = args.ranges[i + 1];
+
+					minRequiredSize += range.minSize + (nextRange && range.allowContact && nextRange.allowContact ? 0 : args.step);
+				});
+
+				return minRequiredSize;
+			} else if (typeof args.ranges === 'number') {
+				return (args.ranges * args.minSize) + (args.allowContact ? 0 : ((args.ranges - 1) * args.step));
+			}
 		};
 
-		const firstRange = (): MRSRange => validatedArgs.ranges[0];
-		const lastRange = (): MRSRange => validatedArgs.ranges[(validatedArgs.ranges as MRSRange[]).length - 1];
+		const firstRange = (): MRSRange => args.ranges[0];
+		const lastRange = (): MRSRange => args.ranges[(args.ranges as MRSRange[]).length - 1];
 
-		// set name
-		validatedArgs.name = args.name;
-
-		// step has already been validated
-		validatedArgs.step = args.step;
-
-		// set min and max and change them later if needed
-		validatedArgs.min = args.min;
-		validatedArgs.max = args.max;
-
-		// set bools
-		validatedArgs.autoMinMax = args.autoMinMax;
-		validatedArgs.fixToMin = args.fixToMin;
-		validatedArgs.fixToMax = args.fixToMax;
-		validatedArgs.allowContact = args.allowContact;
-		validatedArgs.connectRanges = args.connectRanges;
-
-		// set limitedSizeMode (autoMinMax = true forces extendSize)
-		validatedArgs.limitedSizeMode = validatedArgs.autoMinMax ? MRSLimitedSizeMode.extendSize : args.limitedSizeMode;
-
-		// set sizeTooltipMode and startEndTooltipMode
-		validatedArgs.sizeTooltipMode = args.sizeTooltipMode;
-		validatedArgs.startEndTooltipMode = args.startEndTooltipMode;
-
-		// set postData
-		validatedArgs.postData = args.postData;
+		// autoMinMax = true forces limitedSizeMode = extendSize
+		args.limitedSizeMode = args.autoMinMax ? MRSLimitedSizeMode.extendSize : args.limitedSizeMode;
 
 		if (typeof args.ranges === 'number') {
-			// ranges is still a number, so we still have to create ranges
+			// ranges is still a number, so we have to create ranges
 
 			// calculate min required size
-			// minimal size of range = step; if contact is not allowed, add a step between them
-			const minRequiredSize: number = getMinRequiredSize(args.ranges);
+			// if contact is not allowed, add a step between them
+			const minRequiredSize: number = getMinRequiredSize();
 			let givenSize: number;
 
-			if (validatedArgs.autoMinMax) {
+			if (args.autoMinMax) {
 				// autoMinMax activated, so we set size to min required size for now
-				validatedArgs.min = 0;
-				validatedArgs.max = minRequiredSize;
+				args.min = 0;
+				args.max = minRequiredSize;
 			} else {
 				// calculate given size
-				givenSize = validatedArgs.max - validatedArgs.min;
+				givenSize = args.max - args.min;
 
-				// given size has to be > min required size, otherwise adjust max
+				// given size has to be >= min required size, otherwise adjust max
 				if (minRequiredSize > givenSize) {
-					validatedArgs.max = validatedArgs.min + minRequiredSize;
+					args.max = args.min + minRequiredSize;
 				}
 			}
 
 			// now (re)calculate the validated given size and create the ranges based on it
-			givenSize = validatedArgs.max - validatedArgs.min;
+			givenSize = args.max - args.min;
 			const ranges: MRSRange[] = [],
-				rangeSize: number = (givenSize - (validatedArgs.allowContact ? 0 : ((args.ranges - 1) * validatedArgs.step))) / args.ranges,
-				spaceBetweenRanges: number = validatedArgs.allowContact ? 0 : validatedArgs.step;
+				rangeSize: number = (givenSize - (args.allowContact ? 0 : ((args.ranges - 1) * args.step))) / args.ranges,
+				spaceBetweenRanges: number = args.allowContact ? 0 : args.step;
 			let iPrevious: number;
 
 			for (let i = 0; i < args.ranges; i++) {
-				const rangeArgs = this.defaultRangeArgs;
+				const rangeArgs: MRSRangeArgs = this.defaultRangeArgs;
 
 				if (i === 0) {
-					rangeArgs.start = validatedArgs.min;
-					rangeArgs.startFixed = validatedArgs.fixToMin;
+					rangeArgs.start = args.min;
+					rangeArgs.startFixed = args.fixToMin;
 				} else {
 					rangeArgs.start = ranges[iPrevious].end + spaceBetweenRanges;
-					rangeArgs.startConnected = validatedArgs.connectRanges ? true : false;
+					rangeArgs.startConnected = args.connectRanges ? true : false;
 				}
 
 				if (i === args.ranges - 1) {
-					rangeArgs.end = validatedArgs.max;
-					rangeArgs.endFixed = validatedArgs.fixToMax;
+					rangeArgs.end = args.max;
+					rangeArgs.endFixed = args.fixToMax;
 				} else {
 					rangeArgs.end = rangeArgs.start + rangeSize;
-					rangeArgs.endConnected = validatedArgs.connectRanges ? true : false;
+					rangeArgs.endConnected = args.connectRanges ? true : false;
 				}
 
 				ranges.push(new MRSRange(i, rangeArgs));
 				iPrevious = i;
 			}
 
-			validatedArgs.ranges = ranges;
+			args.ranges = ranges;
 		} else if (Array.isArray(args.ranges)) {
 			// ranges is an array of ranges already, validate them
 
-			// make sure start > previous range end, end > start and connect if connectRanges = true
+			// make sure start > previous range end, end > start and maybe connect ranges
 			let previousRange: MRSRange;
-			const spaceBetweenRanges: number = validatedArgs.allowContact ? 0 : validatedArgs.step;
 
 			for (let i = 0; i < args.ranges.length; i++) {
 				const range: MRSRange = args.ranges[i],
-					minStart: number = previousRange ? previousRange.end + spaceBetweenRanges : null,
+					minSpaceBetweenRanges: number = previousRange && previousRange.allowContact && range.allowContact ? 0 : args.step,
+					minStart: number = previousRange ? previousRange.end + minSpaceBetweenRanges : args.min,
 					isFirstRange: boolean = !previousRange,
 					isLastRange: boolean = i === args.ranges.length - 1;
 
-				range.start = previousRange ? (range.start < minStart || validatedArgs.connectRanges ? minStart : range.start) : range.start;
-				range.startFixed = validatedArgs.fixToMin && isFirstRange;
-				range.startConnected = validatedArgs.connectRanges && !isFirstRange ? true : false;
+				range.startConnected = isFirstRange ? false : (previousRange.endConnected ? true : range.startConnected);
+				range.startFixed = args.fixToMin && isFirstRange || range.startConnected && previousRange.endFixed ? true : range.startFixed;
+				range.start = minStart > range.start ? minStart : range.start;
 
-				const minEnd: number = range.start + validatedArgs.step;
+				if (range.startConnected) {
+					switch (args.connectMode) {
+						case MRSConnectMode.keepStart:
+							previousRange.end = range.start - minSpaceBetweenRanges;
+							break;
+						case MRSConnectMode.center:
+							const spaceBetweenRanges: number = range.start - previousRange.end;
+							let moveBy: number = spaceBetweenRanges / 2;
 
+							if (minSpaceBetweenRanges > 0) {
+								moveBy = Math.floor(moveBy / args.step) * args.step;
+							}
+
+							previousRange.end += moveBy;
+							range.start -= (moveBy - minSpaceBetweenRanges);
+							break;
+						case MRSConnectMode.keepEnd:
+							range.start = previousRange.end + minSpaceBetweenRanges;
+							break;
+					}
+				}
+
+				const minEnd: number = range.start + range.minSize,
+					nextRange: MRSRange = args.ranges[i + 1];
+
+				range.endConnected = isLastRange ? false : (nextRange.startConnected ? true : range.endConnected);
+				range.endFixed = args.fixToMax && isLastRange || range.endConnected && nextRange.startFixed ? true : range.endFixed;
 				range.end = range.end < minEnd ? minEnd : range.end;
-				range.endFixed = validatedArgs.fixToMax && isLastRange;
-				range.endConnected = validatedArgs.connectRanges && !isLastRange ? true : false;
 
 				previousRange = range;
 			}
 
-			validatedArgs.ranges = args.ranges;
-
 			const extendSize = () => {
-				validatedArgs.min = validatedArgs.autoMinMax || firstRange().start < validatedArgs.min ? firstRange().start : validatedArgs.min;
-				validatedArgs.max = validatedArgs.autoMinMax || lastRange().end > validatedArgs.max ? lastRange().end : validatedArgs.max;
+				args.min = args.autoMinMax || firstRange().start < args.min ? firstRange().start : args.min;
+				args.max = args.autoMinMax || lastRange().end > args.max ? lastRange().end : args.max;
 			};
 
 			const shrinkRanges = () => {
-				validatedArgs.ranges = validatedArgs.ranges as MRSRange[];
-
-				const givenSize: number = validatedArgs.max - validatedArgs.min,
-					minRequiredSize: number = getMinRequiredSize(validatedArgs.ranges.length);
+				const givenSize: number = args.max - args.min,
+					minRequiredSize: number = getMinRequiredSize();
 
 				// check if it is even possible to shrink it to given size
 				if (minRequiredSize > givenSize) {
@@ -429,14 +436,16 @@ class MRS {
 				}
 
 				let isFirstRange: boolean = true,
-					previousRangeEnd: number = validatedArgs.min,
+					previousRangeEnd: number = args.min,
 					isLastRange: boolean = true,
-					previousRangeStart: number = validatedArgs.max,
+					previousRangeStart: number = args.max,
+					previousRangeAllowContact: boolean,
 					i: number = 0;
 
-				while (i < validatedArgs.ranges.length) {
-					const range: MRSRange = validatedArgs.ranges[i],
-						shrinkBy: number = previousRangeEnd - range.start + (isFirstRange ? 0 : spaceBetweenRanges);
+				while (i < (args.ranges as MRSRange[]).length) {
+					const range: MRSRange = args.ranges[i],
+						minSpaceBetweenRanges: number = !isFirstRange && previousRangeAllowContact && range.allowContact ? 0 : args.step,
+						shrinkBy: number = previousRangeEnd - range.start + (isFirstRange ? 0 : minSpaceBetweenRanges);
 
 					if (shrinkBy <= 0) {
 						break;
@@ -444,14 +453,16 @@ class MRS {
 
 					isFirstRange = false;
 					previousRangeEnd = range.shrinkBy(shrinkBy, 'start');
+					previousRangeAllowContact = range.allowContact;
 					i++;
 				}
 
-				i = validatedArgs.ranges.length - 1;
+				i = (args.ranges as MRSRange[]).length - 1;
 
 				while (i >= 0) {
-					const range: MRSRange = validatedArgs.ranges[i],
-						shrinkBy: number = range.end - previousRangeStart + (isLastRange ? 0 : spaceBetweenRanges);
+					const range: MRSRange = args.ranges[i],
+						minSpaceBetweenRanges: number = !isLastRange && previousRange.allowContact && range.allowContact ? 0 : args.step,
+						shrinkBy: number = range.end - previousRangeStart + (isLastRange ? 0 : minSpaceBetweenRanges);
 
 					if (shrinkBy <= 0) {
 						break;
@@ -459,6 +470,7 @@ class MRS {
 
 					isLastRange = false;
 					previousRangeStart = range.shrinkBy(shrinkBy, 'end');
+					previousRangeAllowContact = range.allowContact;
 					i--;
 				}
 
@@ -466,62 +478,60 @@ class MRS {
 			};
 
 			const shrinkRangesProportionally = () => {
-				validatedArgs.ranges = validatedArgs.ranges as MRSRange[];
-
-				const givenSize: number = validatedArgs.max - validatedArgs.min,
-					minRequiredSize: number = getMinRequiredSize(validatedArgs.ranges.length);
+				const givenSize: number = args.max - args.min,
+					minRequiredSize: number = getMinRequiredSize();
 
 				// check if it is even possible to shrink it to given size
 				if (minRequiredSize > givenSize) {
 					return false;
 				}
 
-				if (firstRange().start < validatedArgs.min) {
+				if (firstRange().start < args.min) {
 					const originalStart: number = firstRange().start,
-						originalEnd: number = lastRange().end > validatedArgs.max ? lastRange().end : validatedArgs.max,
+						originalEnd: number = lastRange().end > args.max ? lastRange().end : args.max,
 						originalSize: number = originalEnd - originalStart,
 						sizeFactor: number = givenSize / originalSize;
 					let isFirstRange: boolean = true,
 						previousRangeOriginalEnd: number = originalStart,
-						previousRangeNewEnd: number = validatedArgs.min,
+						previousRangeNewEnd: number = args.min,
 						i: number = 0;
 
-					while (i < validatedArgs.ranges.length) {
-						const range: MRSRange = validatedArgs.ranges[i],
+					while (i < (args.ranges as MRSRange[]).length) {
+						const range: MRSRange = args.ranges[i],
 							originalSpaceBetweenRanges: number = range.start - previousRangeOriginalEnd;
-						let newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step,
+						let newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / args.step) * args.step,
 							newStart: number;
 
-						newSpaceBetweenRanges = !isFirstRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+						newSpaceBetweenRanges = !isFirstRange && !args.allowContact && newSpaceBetweenRanges < args.step ? args.step : newSpaceBetweenRanges;
 						newStart = previousRangeNewEnd + newSpaceBetweenRanges;
 
 						isFirstRange = false;
 						previousRangeOriginalEnd = range.end;
-						previousRangeNewEnd = range.shrinkProportionallyBy(sizeFactor, 'start', newStart, validatedArgs.max);
+						previousRangeNewEnd = range.shrinkProportionallyBy(sizeFactor, 'start', newStart, args.max);
 						i++;
 					}
-				} else if (lastRange().end > validatedArgs.max) {
-					const originalStart: number = validatedArgs.min,
+				} else if (lastRange().end > args.max) {
+					const originalStart: number = args.min,
 						originalEnd: number = lastRange().end,
 						originalSize: number = originalEnd - originalStart,
 						sizeFactor: number = givenSize / originalSize;
 					let isLastRange: boolean = true,
 						previousRangeOriginalStart: number = originalEnd,
-						previousRangeNewStart: number = validatedArgs.max,
-						i: number = validatedArgs.ranges.length - 1;
+						previousRangeNewStart: number = args.max,
+						i: number = (args.ranges as MRSRange[]).length - 1;
 
 					while (i >= 0) {
-						const range: MRSRange = validatedArgs.ranges[i],
+						const range: MRSRange = args.ranges[i],
 							originalSpaceBetweenRanges: number = previousRangeOriginalStart - range.end;
-						let newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / validatedArgs.step) * validatedArgs.step,
+						let newSpaceBetweenRanges: number = Math.round((originalSpaceBetweenRanges * sizeFactor) / args.step) * args.step,
 							newEnd: number;
 
-						newSpaceBetweenRanges = !isLastRange && !validatedArgs.allowContact && newSpaceBetweenRanges < validatedArgs.step ? validatedArgs.step : newSpaceBetweenRanges;
+						newSpaceBetweenRanges = !isLastRange && !args.allowContact && newSpaceBetweenRanges < args.step ? args.step : newSpaceBetweenRanges;
 						newEnd = previousRangeNewStart - newSpaceBetweenRanges;
 
 						isLastRange = false;
 						previousRangeOriginalStart = range.start;
-						previousRangeNewStart = range.shrinkProportionallyBy(sizeFactor, 'end', newEnd, validatedArgs.min);
+						previousRangeNewStart = range.shrinkProportionallyBy(sizeFactor, 'end', newEnd, args.min);
 						i--;
 					}
 				} else {
@@ -531,22 +541,22 @@ class MRS {
 				return true;
 			};
 
-			if (validatedArgs.ranges.length > 0 && (firstRange().start < validatedArgs.min || lastRange().end > validatedArgs.max)) {
-				switch (validatedArgs.limitedSizeMode) {
+			if (args.ranges.length > 0 && (firstRange().start < args.min || lastRange().end > args.max)) {
+				switch (args.limitedSizeMode) {
 					case MRSLimitedSizeMode.extendSize:
 						extendSize();
 						break;
 					case MRSLimitedSizeMode.shrinkRanges:
 						// in case shrinking ranges is not possible, extend size instead
 						if (!shrinkRanges()) {
-							MRS.logW(`LimitedSizeMode.shrinkRanges is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.`);
+							MRSErrorHandler.throwImpossibleSizeModeReplaced('shrinkRanges', 'extendSize');
 							extendSize();
 						}
 						break;
 					case MRSLimitedSizeMode.shrinkRangesProportionally:
 						// in case shrinking ranges proportionally is not possible, extend size instead
 						if (!shrinkRangesProportionally()) {
-							MRS.logW(`LimitedSizeMode.shrinkRangesProportionally is not possible with the given arguments. LimitedSizeMode.extendSize is used instead.`);
+							MRSErrorHandler.throwImpossibleSizeModeReplaced('shrinkRangesProportionally', 'extendSize');
 							extendSize();
 						}
 						break;
@@ -554,23 +564,23 @@ class MRS {
 			}
 		}
 
-		(validatedArgs.ranges as MRSRange[]).forEach((range: MRSRange, i: number) => {
-			range.previousRange = i > 0 ? validatedArgs.ranges[i - 1] : null;
-			range.nextRange = i < (validatedArgs.ranges as MRSRange[]).length - 1 ? validatedArgs.ranges[i + 1] : null;
+		(args.ranges as MRSRange[]).forEach((range: MRSRange, i: number) => {
+			range.previousRange = i > 0 ? args.ranges[i - 1] : null;
+			range.nextRange = i < (args.ranges as MRSRange[]).length - 1 ? args.ranges[i + 1] : null;
 		});
 
-		if (validatedArgs.fixToMin) {
-			firstRange().start = validatedArgs.min;
+		if (args.fixToMin) {
+			firstRange().start = args.min;
 		}
 
-		if (validatedArgs.fixToMax) {
-			lastRange().end = validatedArgs.max;
+		if (args.fixToMax) {
+			lastRange().end = args.max;
 		}
 
 		// set labels with filled placeholders
 		const placeholderData = {
-			min: validatedArgs.min,
-			max: validatedArgs.max
+			min: args.min,
+			max: args.max
 		};
 
 		const fillPlaceholders = (label: string): string => {
@@ -583,26 +593,9 @@ class MRS {
 			return filledLabel;
 		};
 
-		validatedArgs.labels = {
+		args.labels = {
 			min: fillPlaceholders(args.labels.min),
 			max: fillPlaceholders(args.labels.max)
 		};
-
-		return validatedArgs;
-	}
-
-	static logO(object: any) {
-		// tslint:disable-next-line:no-console
-		console.log(object);
-	}
-
-	static logW(message: string) {
-		// tslint:disable-next-line:no-console
-		console.warn(message);
-	}
-
-	static logE(message: string) {
-		// tslint:disable-next-line:no-console
-		console.error(message);
 	}
 }
