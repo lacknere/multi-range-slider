@@ -32,15 +32,9 @@ $propertyLinkings: (
 
 @mixin cutThumbHalf($direction) {
 	@if $direction == left {
-		transform: scaleX(0.5) translateX(thumb(width) / 2);
-		border-left: 0;
-		border-top-left-radius: 0;
-		border-bottom-left-radius: 0;
+		clip-path: inset(0 0 0 50%);
 	} @else if $direction == right {
-		transform: scaleX(0.5) translateX(-(thumb(width) / 2));
-		border-right: 0;
-		border-top-right-radius: 0;
-		border-bottom-right-radius: 0;
+		clip-path: inset(0 50% 0 0);
 	}
 }
 
