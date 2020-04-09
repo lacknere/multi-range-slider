@@ -9,7 +9,7 @@ $propertyLinkings: (
 	color: background-color,
 	text-color: color,
 	label: false,
-	fixed-cursor: false,
+	fixed: false,
 	offset: false,
 	decorator: false,
 );
@@ -24,6 +24,10 @@ $propertyLinkings: (
 			#{$key}: map-get($object, $key);
 		}
 	}
+}
+
+@mixin thumbFixed() {
+	@include objectProperties(thumb(fixed));
 }
 
 @mixin sliderLabel($content) {

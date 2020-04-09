@@ -21,7 +21,9 @@ $thumb: (
 	border-radius: 2px,
 	color: white,
 	cursor: pointer,
-	fixed-cursor: not-allowed
+	fixed: (
+		cursor: not-allowed
+	)
 );
 
 // Tooltip
@@ -50,7 +52,7 @@ $slider: (
 	margin: 5px,
 	label: (
 		width: 30px,
-		height: map-get($thumb, height),
+		height: max(map-get($thumb, height), map-get($range, thickness)),
 		offset: 5px,
 		text-color: darkgrey,
 		text-align: center,
