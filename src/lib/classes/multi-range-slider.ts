@@ -101,7 +101,6 @@ class MRS {
 		this._element = element;
 		this._args = { ...this.defaultArgs, ...args };
 		this.validateArgs();
-		console.log(this.args);
 		this._slider = new MRSSlider(this);
 	}
 
@@ -355,6 +354,7 @@ class MRS {
 				if (i === 0) {
 					rangeArgs.start = args.min;
 					rangeArgs.startFixed = args.fixToMin;
+					rangeArgs.startConnected = false;
 				} else {
 					rangeArgs.start = ranges[iPrevious].end + spaceBetweenRanges;
 					rangeArgs.startConnected = args.connectRanges ? true : false;
@@ -363,6 +363,7 @@ class MRS {
 				if (i === args.ranges - 1) {
 					rangeArgs.end = args.max;
 					rangeArgs.endFixed = args.fixToMax;
+					rangeArgs.endConnected = false;
 				} else {
 					rangeArgs.end = rangeArgs.start + rangeSize;
 					rangeArgs.endConnected = args.connectRanges ? true : false;
