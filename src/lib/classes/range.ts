@@ -140,6 +140,10 @@ class MRSRange {
 		return this._args.color;
 	}
 
+	public set color(color: string) {
+		this._args.color = color;
+	}
+
 	public get textColor(): string {
 		return this._args.textColor;
 	}

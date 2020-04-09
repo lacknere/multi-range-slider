@@ -9,6 +9,7 @@ type MRSArgs = {
 	fixToMax?: boolean;
 	minSize?: number;
 	allowContact?: boolean;
+	randomColors?: boolean;
 	connectRanges?: boolean;
 	connectMode?: MRSConnectMode;
 	limitedSizeMode?: MRSLimitedSizeMode;
@@ -38,6 +39,7 @@ class MRS {
 		fixToMax: false,
 		minSize: 1,
 		allowContact: true,
+		randomColors: false,
 		connectRanges: false,
 		connectMode: MRSConnectMode.center,
 		limitedSizeMode: MRSLimitedSizeMode.extendSize,
@@ -57,6 +59,7 @@ class MRS {
 		fixToMax: MRSTypeCleaner.cleanBoolean,
 		minSize: MRSTypeCleaner.cleanNumber,
 		allowContact: MRSTypeCleaner.cleanBoolean,
+		randomColors: MRSTypeCleaner.cleanBoolean,
 		connectRanges: MRSTypeCleaner.cleanBoolean,
 		connectMode: MRSTypeCleaner.cleanConnectMode,
 		limitedSizeMode: MRSTypeCleaner.cleanLimitedSizeMode,
@@ -193,10 +196,6 @@ class MRS {
 			delete schema[splitKeys[keysLength - 1]];
 		}
 	}
-
-	// type cleaning
-
-
 
 	// arg cleaning
 	private cleanRangeArray(key: string, ranges: any): MRSRange[] | number {
@@ -369,6 +368,10 @@ class MRS {
 					rangeArgs.endConnected = args.connectRanges ? true : false;
 				}
 
+				if (args.randomColors) {
+					rangeArgs.color = getRandomHexColor();
+				}
+
 				ranges.push(new MRSRange(i, rangeArgs));
 				iPrevious = i;
 			}
@@ -419,6 +422,10 @@ class MRS {
 				range.endConnected = isLastRange ? false : (nextRange.startConnected ? true : range.endConnected);
 				range.endFixed = args.fixToMax && isLastRange || range.endConnected && nextRange.startFixed ? true : range.endFixed;
 				range.end = range.end < minEnd ? minEnd : range.end;
+
+				if (range.color === undefined && args.randomColors) {
+					range.color = getRandomHexColor();
+				}
 
 				previousRange = range;
 			}
