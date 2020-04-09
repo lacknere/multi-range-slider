@@ -59,7 +59,7 @@
 		@include flexCenter;
 		position: absolute;
 		z-index: -2;
-		width: 100%;
+		width: calc(100% - #{thumb(width)});
 		height: rangeHeight();
 
 		[track] {
@@ -143,19 +143,25 @@
 
 		&[connected] {
 			&[start]::-webkit-slider-thumb {
-				width: thumb(width) / 2;
-				margin-left: thumb(width) / 4;
-				border-left: 0;
-				border-top-left-radius: 0;
-				border-bottom-left-radius: 0;
+				@include cutThumbHalf($direction: left);
 			}
 
 			&[end]::-webkit-slider-thumb {
-				width: thumb(width) / 2;
-				margin-left: - (thumb(width) / 4);
-				border-right: 0;
-				border-top-right-radius: 0;
-				border-bottom-right-radius: 0;
+				@include cutThumbHalf($direction: right);
+			}
+		}
+
+		&[size="0"] {
+			&[start]::-webkit-slider-thumb {
+				@include cutThumbHalf($direction: right);
+			}
+
+			&[end]::-webkit-slider-thumb {
+				@include cutThumbHalf($direction: left);
+			}
+
+			&[connected]::-webkit-slider-thumb {
+				visibility: hidden;
 			}
 		}
 	}
@@ -197,11 +203,11 @@
 				}
 
 				&[start] {
-					@include tooltip(start, 1, start, end)
+					@include tooltip(start, 1, start, end);
 				}
 
 				&[end] {
-					@include tooltip(end, 1, end, end)
+					@include tooltip(end, 1, end, end);
 				}
 			}
 
@@ -211,11 +217,27 @@
 				}
 
 				&[start] {
-					@include tooltip(start, 0, start, end)
+					@include tooltip(start, 0, start, end);
 				}
 
 				&[end] {
-					@include tooltip(end, 0, end, end)
+					@include tooltip(end, 0, end, end);
+				}
+			}
+
+			&[size="0"] ~ * {
+				&[start] {
+					&[tooltip-always] {
+						@include tooltip(start, 1, center, end);
+					}
+
+					&[tooltip-on-hover] {
+						@include tooltip(start, 0, center, end);
+					}
+				}
+
+				&[end] {
+					display: none;
 				}
 			}
 		}

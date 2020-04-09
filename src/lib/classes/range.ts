@@ -560,13 +560,28 @@ class MRSRange {
 	public updateRangeElements(elements: string[] = Object.getOwnPropertyNames(this.elements)) {
 		elements.forEach((elementKey: string) => {
 			if (elementKey === 'container') {
-				const sliderWidth: number = this.startInput.clientWidth - this.sliderArgs.thumbWidth,
-					sliderSize: number = Number(this.startInput.max) - Number(this.startInput.min),
-					startOffset: number = (sliderWidth * (this.start - Number(this.startInput.min)) / sliderSize) + (this.sliderArgs.thumbWidth / 2),
-					rangeWidth: number = sliderWidth * this.size / sliderSize;
+				const sliderWidth: number = this.startInput.clientWidth,
+					thumbWidth: number = this.sliderArgs.thumbWidth,
+					sliderMin: number = this.sliderArgs.min,
+					sliderMax: number = this.sliderArgs.max,
+					sliderSize: number = sliderMax - sliderMin;
+				let leftOffset: number,
+					rightOffset: number;
 
-				this.containerElement.style.left = `${startOffset.toString()}px`;
-				this.containerElement.style.width = `${rangeWidth.toString()}px`;
+				const getOffsetCorrection = (position: number): number => {
+					return - thumbWidth * position + thumbWidth / 2;
+				};
+
+				leftOffset = sliderWidth * (this.start - sliderMin) / sliderSize;
+				const leftOffsetPosition: number = leftOffset / sliderWidth;
+				leftOffset += getOffsetCorrection(leftOffsetPosition);
+
+				rightOffset = sliderWidth * (sliderMax - this.end) / sliderSize;
+				const rightOffsetPosition: number = rightOffset / sliderWidth;
+				rightOffset += getOffsetCorrection(rightOffsetPosition);
+
+				this.containerElement.style.left = `${leftOffset.toString()}px`;
+				this.containerElement.style.right = `${rightOffset.toString()}px`;
 				if (this.color) {
 					this.containerElement.style.backgroundColor = this.color;
 					this.containerElement.style.borderColor = this.color;
@@ -589,6 +604,12 @@ class MRSRange {
 						this.startInput.removeAttribute('connected');
 						this.previousRange.updateRangeElements(['end']);
 					}
+
+					if (this.size === 0 && !this.startInput.hasAttribute('size')) {
+						this.startInput.setAttribute('size', '0');
+					} else if (this.size > 0 && this.startInput.hasAttribute('size')) {
+						this.startInput.removeAttribute('size');
+					}
 				}
 			} else if (elementKey === 'end') {
 				if (this.endInput) {
@@ -598,6 +619,12 @@ class MRSRange {
 					} else if (!this.endVisuallyConnected && this.endInput.hasAttribute('connected')) {
 						this.endInput.removeAttribute('connected');
 						this.nextRange.updateRangeElements(['start']);
+					}
+
+					if (this.size === 0 && !this.endInput.hasAttribute('size')) {
+						this.endInput.setAttribute('size', '0');
+					} else if (this.size > 0 && this.endInput.hasAttribute('size')) {
+						this.endInput.removeAttribute('size');
 					}
 				}
 			} else {
