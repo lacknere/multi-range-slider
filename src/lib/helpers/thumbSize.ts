@@ -1,0 +1,1 @@
+export const getThumbSize = (): number => parseFloat(getComputedStyle(document.body).getPropertyValue('--input-range-thumb-width'));
