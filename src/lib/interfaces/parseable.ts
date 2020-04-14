@@ -1,3 +1,0 @@
-interface Parseable {
-	parse();
-}

@@ -1,8 +1,8 @@
 import Cleaner from '../cleaners/cleaner';
 import Validator from '../validators/validator';
+import ArgHandler from '../argHandler';
 import ErrorHandler from '../../error-handler/errorHandler';
 import { InvalidArgTypeReplacedWarning, InvalidArgReplacedWarning } from '../../error-handler/warnings';
-import ArrayCleaner from '../cleaners/array/array';
 
 export default abstract class Arg {
 	static key: string;
@@ -11,12 +11,14 @@ export default abstract class Arg {
 	static Validator: typeof Validator = Validator;
 
 	_initialized: boolean = false;
+	_handler: ArgHandler;
 	_value: any;
 	_listeners = {
 		onChange: []
 	};
 
-	constructor(value?: any) {
+	constructor(handler: ArgHandler, value?: any) {
+		this._handler = handler;
 		this.value = value;
 	}
 
@@ -25,13 +27,7 @@ export default abstract class Arg {
 	}
 
 	get defaultValue(): any {
-		const defaultValue: any = (this.constructor as typeof Arg).defaultValue;
-
-		if (typeof defaultValue === 'function') {
-			return defaultValue();
-		} else {
-			return defaultValue;
-		}
+		return (this.constructor as typeof Arg).defaultValue;
 	}
 
 	get Cleaner(): typeof Cleaner {
@@ -40,6 +36,10 @@ export default abstract class Arg {
 
 	get Validator(): typeof Validator {
 		return (this.constructor as typeof Arg).Validator;
+	}
+
+	get handler(): ArgHandler {
+		return this._handler;
 	}
 
 	get value(): any {
@@ -74,15 +74,15 @@ export default abstract class Arg {
 		this._listeners.onChange.push(listener);
 	}
 
-	private clean(value: any): any {
+	clean(value: any): any {
 		return this.Cleaner.clean(value, this.key);
 	}
 
-	private validate(value: any): any {
+	validate(value: any): any {
 		return this.Validator.validate(value);
 	}
 
-	private callListeners(key: string) {
+	callListeners(key: string) {
 		this._listeners[key].forEach(
 			(listener: () => void) => listener()
 		);

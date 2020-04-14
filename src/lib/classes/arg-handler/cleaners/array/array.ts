@@ -8,7 +8,7 @@ export default abstract class ArrayCleaner extends Cleaner {
 	static clean(value: any, key: string): any[] {
 		if (Array.isArray(value)) {
 			return value.map(
-				(item: any) => this.ItemCleaner.clean(item)
+				(item: any, index: number) => this.ItemCleaner.clean(item, index)
 			).filter((item: any, i: number) => {
 				const invalidType: boolean = item === undefined;
 
