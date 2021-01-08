@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = function (grunt) {
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
@@ -22,15 +24,26 @@ module.exports = function (grunt) {
 			},
 			dist: {
 				src: ['dist/js/**/*.js'],
-				dest: 'dist/release/<%= pkg.name %>.js'
+				dest: 'dist/js/<%= pkg.name %>.js'
+			}
+		},
+
+		webpack: {
+			myConfig: {
+				mode: 'production',
+				entry: path.resolve(__dirname, 'dist/js/<%= pkg.name %>.js'),
+				output: {
+					path: path.resolve(__dirname, 'dist/release'),
+					filename: '<%= pkg.name %>.js',
+				}
 			}
 		},
 
 		uglify: {
 			options: {
-				sourceMap: true,
-				sourceMapIncludeSources: true,
-				sourceMapIn: function (path) { return path + ".map" },
+				// sourceMap: true,
+				// sourceMapIncludeSources: true,
+				// sourceMapIn: function (path) { return path + ".map" },
 				banner: '/*! <%= pkg.name %> - v<%= pkg.version %> - <%= grunt.template.today("dd-mm-yyyy") %>\n<%= pkg.description %> */\n',
 				mangle: {
 					toplevel: true
@@ -38,7 +51,7 @@ module.exports = function (grunt) {
 			},
 			dist: {
 				files: {
-					'dist/release/<%= pkg.name %>.min.js': ['<%= concat.dist.dest %>']
+					'dist/release/<%= pkg.name %>.min.js': ['dist/release/<%= pkg.name %>.js']
 				}
 			}
 		},
@@ -63,7 +76,7 @@ module.exports = function (grunt) {
 		watch: {
 			scripts: {
 				files: ['<%= tslint.files %>'],
-				tasks: ['ts', 'concat']
+				tasks: ['ts', 'concat', 'webpack']
 			},
 			styles: {
 				files: ['src/styles/**/*.scss'],
@@ -75,12 +88,13 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-tslint');
 	grunt.loadNpmTasks('grunt-ts');
 	grunt.loadNpmTasks('grunt-contrib-concat');
+	grunt.loadNpmTasks('grunt-webpack');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-sass');
 	grunt.loadNpmTasks('grunt-focus');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 
-	grunt.registerTask('default', ['tslint', 'ts', 'concat', 'uglify', 'sass']);
+	grunt.registerTask('default', ['tslint', 'ts', 'concat', 'webpack', 'uglify', 'sass']);
 	grunt.registerTask('build', ['default']);
 	grunt.registerTask('watch:scripts', ['focus:scripts']);
 	grunt.registerTask('watch:styles', ['focus:styles']);
